@@ -124,6 +124,22 @@ jeeves -a -p
 
 MIT
 
+## Development
+
+### Testing
+
+Jeeves uses Minitest for testing. To run the tests:
+
+```bash
+bundle install
+rake test
+```
+
+The test suite includes:
+- Unit tests for the CLI functionality
+- Tests for version consistency
+- Mock tests for API interactions (using WebMock)
+
 ## Author
 
 [Justin Bishop (jubishop)](https://github.com/jubishop)

@@ -11,9 +11,13 @@ Gem::Specification.new do |spec|
   spec.license       = "MIT"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.6.0")
   
-  spec.files         = Dir.glob("{bin,lib,config}/**/*") + %w[README.md LICENSE prompt]
+  spec.files         = Dir.glob("{bin,lib}/**/*") + %w[README.md LICENSE prompt]
   spec.bindir        = "bin"
   spec.executables   = ["jeeves"]
   
   spec.add_dependency "json", "~> 2.0"
+  
+  spec.add_development_dependency "rake", "~> 13.0"
+  spec.add_development_dependency "minitest", "~> 5.0"
+  spec.add_development_dependency "webmock", "~> 3.0"
 end
