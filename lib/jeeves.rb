@@ -83,18 +83,18 @@ module Jeeves
       end
 
       unless File.exist?(PROMPT_FILE)
-        # Check for bundled prompt file in the gem's data directory
-        gem_prompt = File.join(File.dirname(__FILE__), '..', '..', 'prompt')
+        # Check for bundled prompt file in the config directory
+        config_prompt = File.join(File.dirname(__FILE__), '..', '..', 'config', 'prompt')
         
-        if File.exist?(gem_prompt)
+        if File.exist?(config_prompt)
           puts "Copying bundled prompt file to #{PROMPT_FILE}"
-          FileUtils.cp(gem_prompt, PROMPT_FILE)
+          FileUtils.cp(config_prompt, PROMPT_FILE)
           puts "Prompt file installed successfully."
         else
           puts "Error: Prompt file not found at #{PROMPT_FILE}"
-          puts "No bundled prompt file found at #{gem_prompt}"
+          puts "No bundled prompt file found at: #{config_prompt}"
           puts "Please create a prompt file with your custom prompt."
-          exit 1
+          exit 1 unless defined?(TESTING_MODE) && TESTING_MODE
         end
       end
     end

@@ -8,8 +8,18 @@ require 'optparse'
 require 'fileutils'
 require 'tmpdir'
 
+# Store the version before defining our Jeeves class
+lib_path = File.expand_path('../lib', __FILE__)
+$LOAD_PATH.unshift(lib_path) unless $LOAD_PATH.include?(lib_path)
+require 'jeeves/version'
+
+# Store the module version before we define our class
+JEEVES_GEM_VERSION = Jeeves::VERSION
+
 class Jeeves
-  VERSION = '1.0.0'
+  # Set VERSION to the previously stored value
+  VERSION = JEEVES_GEM_VERSION
+
   CONFIG_DIR = File.expand_path('~/.config/jeeves')
   PROMPT_FILE = File.join(CONFIG_DIR, 'prompt')
 
