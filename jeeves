@@ -84,9 +84,20 @@ class Jeeves
     end
 
     unless File.exist?(PROMPT_FILE)
-      puts "Error: Prompt file not found at #{PROMPT_FILE}"
-      puts "Please create this file with your custom prompt."
-      exit 1
+      # Check for bundled prompt file in the same directory as the script
+      script_dir = File.dirname(__FILE__)
+      bundled_prompt = File.join(script_dir, 'prompt')
+      
+      if File.exist?(bundled_prompt)
+        puts "Copying bundled prompt file to #{PROMPT_FILE}"
+        FileUtils.cp(bundled_prompt, PROMPT_FILE)
+        puts "Prompt file installed successfully."
+      else
+        puts "Error: Prompt file not found at #{PROMPT_FILE}"
+        puts "No bundled prompt file found at #{bundled_prompt}"
+        puts "Please create a prompt file with your custom prompt."
+        exit 1
+      end
     end
   end
 
