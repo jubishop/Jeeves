@@ -1,7 +1,7 @@
 # Jeeves
 
 <p align="center">
-  <img src="jeeves.png" alt="Jeeves Logo" width="200">
+  <img src="assets/jeeves.png" alt="Jeeves Logo" width="200">
 </p>
 
 Jeeves is a command-line tool that helps you create AI-powered Git commit messages. It streamlines your Git workflow by automatically generating meaningful commit messages based on your code changes.
@@ -110,7 +110,7 @@ The default model is `openai/gpt-4.1-mini` if not specified.
 
 Jeeves stores its configuration in `~/.config/jeeves/`. You can customize the AI prompt by editing the `prompt` file in this directory.
 
-When you run Jeeves for the first time, if there's no prompt file in the config directory, it will check for a bundled prompt file in the same directory as the script and copy it to the config directory automatically.
+When you run Jeeves for the first time, if there's no prompt file in the config directory, it will copy `config/prompt` to the config directory automatically.
 
 ## Usage
 

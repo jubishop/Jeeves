@@ -84,9 +84,9 @@ class Jeeves
     end
 
     unless File.exist?(PROMPT_FILE)
-      # Check for bundled prompt file in the same directory as the script
+      # Check for bundled prompt file in the config directory
       script_dir = File.dirname(__FILE__)
-      bundled_prompt = File.join(script_dir, 'prompt')
+      bundled_prompt = File.join(script_dir, 'config/prompt')
       
       if File.exist?(bundled_prompt)
         puts "Copying bundled prompt file to #{PROMPT_FILE}"

@@ -1,4 +1,4 @@
-require_relative 'lib/jeeves/version'
+require_relative '../lib/jeeves/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "jeeves-git-commit"
@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.license       = "MIT"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.6.0")
   
-  spec.files         = Dir.glob("{bin,lib}/**/*") + %w[README.md LICENSE prompt]
+  spec.files         = Dir.glob("{bin,lib}/**/*") + %w[README.md LICENSE config/prompt]
   spec.bindir        = "bin"
   spec.executables   = ["jeeves"]
   

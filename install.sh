@@ -61,8 +61,8 @@ mkdir -p "$CONFIG_DIR"
 PROMPT_FILE="$CONFIG_DIR/prompt"
 
 if [ ! -f "$PROMPT_FILE" ]; then
-  if [ -f "$SCRIPT_DIR/prompt" ]; then
-    cp "$SCRIPT_DIR/prompt" "$PROMPT_FILE"
+  if [ -f "$SCRIPT_DIR/config/prompt" ]; then
+    cp "$SCRIPT_DIR/config/prompt" "$PROMPT_FILE"
     echo "Copied default prompt file to $PROMPT_FILE"
   else
     echo "Warning: Could not find prompt file template"
