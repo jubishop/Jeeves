@@ -121,4 +121,74 @@ class CLITest < Minitest::Test
     # Reset ARGV
     ARGV.replace([])
   end
+  
+  def test_bundled_prompt_path_calculation
+    # This test ensures we don't have path calculation issues with '..' when finding the bundled prompt
+    
+    # Get the private method's source code using Ruby reflection
+    setup_config_method = Jeeves::CLI.instance_method(:setup_config_dir)
+    method_source = setup_config_method.source_location
+    
+    # Verify that we're able to find the method source
+    assert method_source, "Could not locate setup_config_dir method source"
+    
+    # Capture the actual implemented logic for finding the bundled prompt
+    config_prompt_path = nil
+    
+    # Override File.join to capture its arguments when called for the bundled prompt
+    original_file_join = File.method(:join)
+    path_capture = ->(path, *args) do
+      # When we see a path concatenation that includes 'config/prompt', capture those args
+      if args.include?('config') && args.include?('prompt')
+        config_prompt_path = [path, *args]
+      end
+      original_file_join.call(path, *args)
+    end
+    
+    # Stub File.join temporarily
+    File.singleton_class.class_eval do
+      alias_method :original_join, :join
+      define_method(:join, &path_capture)
+    end
+    
+    # Create a temporary CLI instance to trigger the path calculation
+    begin
+      # Create instance with stubbed file operations to avoid side effects
+      FileUtils.stubs(:mkdir_p).returns(true)
+      File.stubs(:exist?).returns(false) # Forces the path calculation code to run
+      File.stubs(:read).returns("test prompt content")
+      FileUtils.stubs(:cp).returns(true)
+      
+      # Catch the exit call in the error case
+      begin
+        cli = Jeeves::CLI.new
+      rescue SystemExit
+        # Expected when File.exist? is stubbed to false
+      end
+      
+      # Now we should have captured the path calculation
+      assert config_prompt_path, "Path calculation was not captured"
+      
+      # Check if we're only going up one directory level (not two)
+      path_components = config_prompt_path.select { |part| part == '..' }
+      assert_equal 1, path_components.size, 
+                   "Path calculation goes too far up: #{config_prompt_path.join('/')}"
+      
+      # Also verify we're constructing the path correctly
+      assert_includes config_prompt_path, 'config'
+      assert_includes config_prompt_path, 'prompt'
+    ensure
+      # Restore original File.join method
+      File.singleton_class.class_eval do
+        remove_method :join
+        alias_method :join, :original_join
+      end
+      
+      # Remove any stubs
+      FileUtils.unstub(:mkdir_p)
+      File.unstub(:exist?)
+      File.unstub(:read)
+      FileUtils.unstub(:cp)
+    end
+  end
 end
