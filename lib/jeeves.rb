@@ -84,7 +84,7 @@ module Jeeves
 
       unless File.exist?(PROMPT_FILE)
         # Check for bundled prompt file in the config directory
-        config_prompt = File.join(File.dirname(__FILE__), '..', '..', 'config', 'prompt')
+        config_prompt = File.join(File.dirname(__FILE__), '..', 'config', 'prompt')
         
         if File.exist?(config_prompt)
           puts "Copying bundled prompt file to #{PROMPT_FILE}"
