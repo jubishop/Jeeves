@@ -146,6 +146,30 @@ MIT
 
 ## Development
 
+### Project Structure
+
+Jeeves follows a specific project structure where all gemspec files and built gem files (.gem) are placed in the `gemspec/` folder rather than the root directory. This keeps the root directory clean and organized.
+
+### Rake Tasks
+
+Jeeves provides several rake tasks to streamline development:
+
+```bash
+# Run the test suite
+rake test
+
+# Build the gem and place it in the gemspec/ folder
+rake build
+
+# Build, install and test the gem
+rake install
+
+# Build and push the gem to RubyGems
+rake push
+```
+
+The default task is `rake test`.
+
 ### Testing
 
 Jeeves uses Minitest for testing. To run the tests:
