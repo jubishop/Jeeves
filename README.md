@@ -1,5 +1,9 @@
 # Jeeves
 
+<p align="center">
+  <img src="jeeves.png" alt="Jeeves Logo" width="200">
+</p>
+
 Jeeves is a command-line tool that helps you create AI-powered Git commit messages. It streamlines your Git workflow by automatically generating meaningful commit messages based on your code changes.
 
 ## Features
@@ -16,7 +20,52 @@ Jeeves is a command-line tool that helps you create AI-powered Git commit messag
 - Ruby 2.6 or higher
 - Git
 
-### Steps
+### Option 1: Install as a Gem (Recommended)
+
+```bash
+gem install jeeves-git-commit
+```
+
+This automatically adds Jeeves to your PATH.
+
+### Option 2: Build and Install from Source
+
+1. Clone this repository:
+
+```bash
+git clone https://github.com/jubishop/Jeeves.git
+cd Jeeves
+```
+
+2. Build and install the gem:
+
+```bash
+gem build jeeves.gemspec
+gem install jeeves-git-commit-*.gem
+```
+
+### Option 3: Use the Install Script
+
+1. Clone this repository:
+
+```bash
+git clone https://github.com/jubishop/Jeeves.git
+cd Jeeves
+```
+
+2. Run the install script:
+
+```bash
+./install.sh
+```
+
+The script will:
+- Install Jeeves to `/usr/local/bin` (or `~/.local/bin` if you don't have write access)
+- Add the install location to your PATH if necessary
+- Set up the config directory with the default prompt file
+- Make sure the script is executable
+
+### Option 4: Manual Installation
 
 1. Clone this repository:
 
@@ -28,13 +77,13 @@ cd Jeeves
 2. Make the script executable:
 
 ```bash
-chmod +x jeeves
+chmod +x bin/jeeves
 ```
 
-3. Create a symbolic link to make Jeeves available globally (optional):
+3. Create a symbolic link to make Jeeves available globally:
 
 ```bash
-ln -s "$(pwd)/jeeves" /usr/local/bin/jeeves
+ln -s "$(pwd)/bin/jeeves" /usr/local/bin/jeeves
 ```
 
 ## Usage

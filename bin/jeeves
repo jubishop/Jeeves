@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'jeeves'
+
+if $PROGRAM_NAME == __FILE__
+  Jeeves::CLI.new.run
+end
