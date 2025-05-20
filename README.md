@@ -86,6 +86,32 @@ chmod +x bin/jeeves
 ln -s "$(pwd)/bin/jeeves" /usr/local/bin/jeeves
 ```
 
+## Configuration
+
+### API Key Setup
+
+Jeeves requires an OpenRouter API key to generate commit messages. You need to set this as an environment variable:
+
+```bash
+export OPENROUTER_API_KEY="your_openrouter_api_key"
+```
+
+You can get an API key from [OpenRouter](https://openrouter.ai/).
+
+Optionally, you can specify a different model by setting:
+
+```bash
+export GIT_COMMIT_MODEL="openai/gpt-4o"
+```
+
+The default model is `openai/gpt-4.1-mini` if not specified.
+
+### Prompt Configuration
+
+Jeeves stores its configuration in `~/.config/jeeves/`. You can customize the AI prompt by editing the `prompt` file in this directory.
+
+When you run Jeeves for the first time, if there's no prompt file in the config directory, it will check for a bundled prompt file in the same directory as the script and copy it to the config directory automatically.
+
 ## Usage
 
 Navigate to your Git repository and run:
@@ -100,12 +126,6 @@ Options:
 - `-p, --push`: Push changes after committing
 - `--version`: Show version information
 - `-h, --help`: Show help message
-
-## Configuration
-
-Jeeves stores its configuration in `~/.config/jeeves/`. You can customize the AI prompt by editing the `prompt` file in this directory.
-
-When you run Jeeves for the first time, if there's no prompt file in the config directory, it will check for a bundled prompt file in the same directory as the script and copy it to the config directory automatically.
 
 ## Examples
 
