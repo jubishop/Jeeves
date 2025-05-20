@@ -1,19 +1,14 @@
-require 'test_helper'
+require_relative '../test_helper'
 require 'webmock/minitest'
 
 class CommitMessageTest < Minitest::Test
   def setup
-    # Use our common test environment setup
+    # Use our common test environment setup which now handles:
+    # - Creating an isolated test environment
+    # - Setting up test directories
+    # - Overriding CONFIG_DIR to use test paths
+    # - Stubbing API calls and system commands
     setup_test_environment
-    
-    # Create a temporary directory for test config
-    @original_config_dir = Jeeves::CLI::CONFIG_DIR
-    @test_config_dir = File.join(Dir.tmpdir, "jeeves_test_#{Time.now.to_i}")
-    FileUtils.mkdir_p(@test_config_dir)
-    
-    # Stub the CONFIG_DIR constant
-    Jeeves::CLI.send(:remove_const, :CONFIG_DIR)
-    Jeeves::CLI.const_set(:CONFIG_DIR, @test_config_dir)
     
     # Create a test prompt file with the exact format we need
     @prompt_file = File.join(@test_config_dir, 'prompt')
@@ -38,22 +33,16 @@ DIFF:
 PROMPT
     )
     
-    # Create instance
+    # Create instance - will use our isolated test environment
     @cli = Jeeves::CLI.new
   end
   
   def teardown
-    # Restore original CONFIG_DIR if it was set
-    if defined?(@original_config_dir) && @original_config_dir
-      Jeeves::CLI.send(:remove_const, :CONFIG_DIR) if Jeeves::CLI.const_defined?(:CONFIG_DIR)
-      Jeeves::CLI.const_set(:CONFIG_DIR, @original_config_dir)
-    end
-    
-    # Clean up test directory if it was created
-    FileUtils.rm_rf(@test_config_dir) if defined?(@test_config_dir) && @test_config_dir && File.exist?(@test_config_dir.to_s)
-    
-    # Use our common test environment teardown
-    teardown_test_environment if defined?(teardown_test_environment)
+    # Use the common teardown_test_environment which now handles:
+    # - Restoring CONFIG_DIR constant
+    # - Cleaning up all test directories
+    # - Restoring ENV variables
+    teardown_test_environment
   end
   
   def test_generate_commit_message

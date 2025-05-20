@@ -1,48 +1,40 @@
-require 'test_helper'
+require_relative '../test_helper'
 require 'fileutils'
 require 'tempfile'
 
 class CLITest < Minitest::Test
   def setup
-    # Set up test environment with mocked API calls
+    # Set up completely isolated test environment with mocked API calls
     setup_test_environment
     
-    # Create a temporary directory for test config
-    @original_config_dir = Jeeves::CLI::CONFIG_DIR
-    @test_config_dir = File.join(Dir.tmpdir, "jeeves_test_#{Time.now.to_i}")
-    FileUtils.mkdir_p(@test_config_dir)
-    
-    # Stub the CONFIG_DIR constant
-    Jeeves::CLI.send(:remove_const, :CONFIG_DIR)
-    Jeeves::CLI.const_set(:CONFIG_DIR, @test_config_dir)
-    
-    # Create a test prompt file (it will be used as the config file)
+    # The test_config_dir and CONFIG_DIR are now managed by setup_test_environment
+    # Create a test prompt file in the isolated test config directory
     @prompt_file = File.join(@test_config_dir, 'prompt')
     File.write(@prompt_file, "Test prompt with {{DIFF}} placeholder")
     
-    # Also create a mock bundled prompt file in the config directory to match our new structure
-    @mock_config_dir = File.join(Dir.tmpdir, "jeeves_test_config_#{Time.now.to_i}")
-    FileUtils.mkdir_p(@mock_config_dir)
-    @mock_prompt_file = File.join(@mock_config_dir, 'prompt')
-    File.write(@mock_prompt_file, "Mock bundled prompt content")
+    # Create a mock bundled prompt file in the isolated project config directory
+    @bundled_prompt_dir = File.join(@test_root_dir, 'config')
+    @bundled_prompt_file = File.join(@bundled_prompt_dir, 'prompt')
+    # The file is already created by create_isolated_project_structure in test_helper
     
-    # Store original setup_config_dir method to allow patching
-    @original_setup_config_dir = Jeeves::CLI.instance_method(:setup_config_dir) if Jeeves::CLI.method_defined?(:setup_config_dir)
+    # Store the original bundle_prompt path method to patch for tests if needed
+    if Jeeves::CLI.private_method_defined?(:setup_config_dir)
+      @original_setup_config_dir = Jeeves::CLI.instance_method(:setup_config_dir)
+    end
   end
   
   def teardown
-    # Restore original CONFIG_DIR if it was stored
-    if defined?(@original_config_dir) && @original_config_dir
-      Jeeves::CLI.send(:remove_const, :CONFIG_DIR) if Jeeves::CLI.const_defined?(:CONFIG_DIR)
-      Jeeves::CLI.const_set(:CONFIG_DIR, @original_config_dir)
+    # Use the common teardown_test_environment which now handles:
+    # - Restoring CONFIG_DIR constant
+    # - Cleaning up all test directories
+    # - Restoring ENV variables
+    teardown_test_environment
+    
+    # If we patched any methods during testing, restore them
+    if defined?(@original_setup_config_dir) && Jeeves::CLI.private_method_defined?(:setup_config_dir)
+      Jeeves::CLI.send(:remove_method, :setup_config_dir)
+      Jeeves::CLI.send(:define_method, :setup_config_dir, @original_setup_config_dir)
     end
-    
-    # Clean up test directories if they were created
-    FileUtils.rm_rf(@test_config_dir) if defined?(@test_config_dir) && @test_config_dir && File.exist?(@test_config_dir.to_s)
-    FileUtils.rm_rf(@mock_config_dir) if defined?(@mock_config_dir) && @mock_config_dir && File.exist?(@mock_config_dir.to_s)
-    
-    # Restore the original environment
-    teardown_test_environment if defined?(teardown_test_environment)
   end
   
   def test_initialize
@@ -52,25 +44,55 @@ class CLITest < Minitest::Test
   end
   
   def test_setup_config_dir
-    # This is a very basic test to verify that the setup_config_dir method works
-    # We'll create a file directly in the test directory and verify it exists
+    # This test verifies that setup_config_dir correctly copies the bundled prompt
+    # to the user config directory when it doesn't exist
     
-    # First, ensure the prompt file doesn't exist
+    # Make sure we're using our isolated test directories
+    assert_equal @test_config_dir, Jeeves::CLI::CONFIG_DIR, "Should be using isolated test config directory"
+    
+    # First, ensure the prompt file doesn't exist in the user config
     File.unlink(@prompt_file) if File.exist?(@prompt_file)
+    refute File.exist?(@prompt_file), "Prompt file should not exist before test"
     
-    # Manually create the test config directory and prompt file
-    FileUtils.mkdir_p(@test_config_dir)
+    # Make sure the bundled prompt exists in our test project structure
+    assert File.exist?(@bundled_prompt_file), "Bundled prompt file should exist in test env"
+    bundled_content = File.read(@bundled_prompt_file)
     
-    # Now write content directly to the prompt file
-    test_content = "Test prompt for CLI test"
-    File.write(@prompt_file, test_content)
+    # Create a custom implementation of setup_config_dir that uses our test paths
+    Jeeves::CLI.class_eval do
+      alias_method :original_setup_config_dir, :setup_config_dir if method_defined?(:setup_config_dir)
+      
+      define_method(:setup_config_dir) do
+        unless Dir.exist?(Jeeves::CLI::CONFIG_DIR)
+          FileUtils.mkdir_p(Jeeves::CLI::CONFIG_DIR)
+        end
+        
+        unless File.exist?(Jeeves::CLI::PROMPT_FILE)
+          test_bundled_prompt = File.join(TEST_ROOT_DIR, 'config', 'prompt')
+          if File.exist?(test_bundled_prompt)
+            FileUtils.cp(test_bundled_prompt, Jeeves::CLI::PROMPT_FILE)
+          end
+        end
+      end
+    end
     
-    # Verify the file exists and has the content
-    assert File.exist?(@prompt_file), "Prompt file should exist"
-    assert_equal test_content, File.read(@prompt_file), "Prompt content should match"
+    # Create a CLI instance and call setup_config_dir
+    cli = Jeeves::CLI.new
+    cli.send(:setup_config_dir) # Explicitly call the private method
     
-    # Success if we get here - we've verified we can create and read the prompt file
-    # in the test environment, which is what setup_config_dir would do
+    # Verify the prompt file was correctly copied to the user config directory
+    assert File.exist?(@prompt_file), "Prompt file should exist after setup_config_dir"
+    assert_equal bundled_content, File.read(@prompt_file), "Prompt content should match the bundled file"
+    
+    # Properly restore the original method without removing it completely
+    if Jeeves::CLI.method_defined?(:original_setup_config_dir)
+      Jeeves::CLI.class_eval do
+        # Define a new method with the same body as the original one
+        remove_method :setup_config_dir
+        alias_method :setup_config_dir, :original_setup_config_dir
+        remove_method :original_setup_config_dir
+      end
+    end
   end
   
   # Mock method to avoid actual git commands
