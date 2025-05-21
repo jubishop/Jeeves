@@ -112,7 +112,7 @@ Jeeves stores its configuration in `~/.config/jeeves/`. You can customize the AI
 
 When you run Jeeves for the first time, if there's no prompt file in the config directory, it will copy `config/prompt` to the config directory automatically.
 
-The special string: {{DIFF}}, in your prompt will be replaced with the current git diff.
+The special string: `{{DIFF}}`, in your prompt will be replaced with the current git diff.
 
 ## Usage
 
