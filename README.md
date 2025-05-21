@@ -8,10 +8,11 @@ Jeeves is a command-line tool that helps you create AI-powered Git commit messag
 
 ## Features
 
-- Generate intelligent commit messages based on your staged changes
+- Generate intelligent [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) messages with [gitmoji](https://gitmoji.dev) based on your staged changes.
 - Option to automatically stage all changes before committing
 - Option to push changes after committing
 - Customizable AI prompts for tailored commit message generation
+- Choose any AI model (chat-gpt 4.1-mini by default)
 
 ## Installation
 
