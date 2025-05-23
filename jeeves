@@ -111,6 +111,12 @@ class Jeeves
     end
   end
 
+  def git_root_dir
+    # Get the git root directory of the current repository
+    git_root = `git rev-parse --show-toplevel`.strip
+    return git_root.empty? ? Dir.pwd : git_root
+  end
+
   def generate_commit_message(diff)
     api_key = ENV['OPENROUTER_API_KEY']
     if api_key.nil? || api_key.empty?
@@ -120,7 +126,17 @@ class Jeeves
 
     model = ENV['GIT_COMMIT_MODEL'] || 'openai/gpt-4.1-mini'
     
-    prompt = File.read(PROMPT_FILE).gsub('{{DIFF}}', diff)
+    # Check for repository-specific prompt file first
+    repo_prompt_file = File.join(git_root_dir, '.jeeves_prompt')
+    prompt_file_used = if File.exist?(repo_prompt_file)
+      puts "Using repository-specific prompt from #{repo_prompt_file}"
+      repo_prompt_file
+    else
+      puts "Using global prompt from #{PROMPT_FILE}"
+      PROMPT_FILE
+    end
+    
+    prompt = File.read(prompt_file_used).gsub('{{DIFF}}', diff)
     
     uri = URI.parse('https://openrouter.ai/api/v1/chat/completions')
     http = Net::HTTP.new(uri.host, uri.port)
