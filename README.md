@@ -8,10 +8,11 @@ Jeeves is a command-line tool that helps you create AI-powered Git commit messag
 
 ## Features
 
-- Generate intelligent commit messages based on your staged changes
+- Generate intelligent [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) messages with [gitmoji](https://gitmoji.dev) based on your staged changes.
 - Option to automatically stage all changes before committing
 - Option to push changes after committing
 - Customizable AI prompts for tailored commit message generation
+- Choose any AI model (chat-gpt 4.1-mini by default)
 
 ## Installation
 
@@ -118,6 +119,8 @@ When you run Jeeves, it will:
 2. If not found, fall back to the global prompt at `~/.config/jeeves/prompt`
 
 When you run Jeeves for the first time, if there's no global prompt file in the config directory, it will copy `config/prompt` to the config directory automatically.
+
+The special string: `{{DIFF}}`, in your prompt will be replaced with the current git diff.
 
 ## Usage
 
