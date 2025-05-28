@@ -1,0 +1,35 @@
+# Ignore gem binaries
+gems/
+
+# Ignore bundler config
+/.bundle/
+
+# Ignore gem lock files in development
+vendor/
+
+# Ignore temporary files
+*.tmp
+*.swp
+*.swo
+*~
+
+# Ignore OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Ignore IDE files
+.vscode/settings.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Ignore coverage reports
+coverage/
+
+# Ignore log files
+*.log

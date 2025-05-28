@@ -8,19 +8,19 @@ Rake::TestTask.new(:test) do |t|
   t.test_files = FileList['test/**/*_test.rb']
 end
 
-desc 'Build the gem and place it in the gemspec/ folder'
+desc 'Build the gem and place it in the gems/ folder'
 task :build do
   # Build the gem
-  sh "gem build gemspec/jeeves.gemspec"
+  sh "gem build jeeves.gemspec"
   
   # Get the version
   version = Jeeves::VERSION
   
-  # Move the gem file to the gemspec/ folder
+  # Move the gem file to the gems/ folder
   gem_file = "jeeves-git-commit-#{version}.gem"
   if File.exist?(gem_file)
-    FileUtils.mv(gem_file, "gemspec/#{gem_file}")
-    puts "Successfully built and moved #{gem_file} to gemspec/ folder"
+    FileUtils.mv(gem_file, "gems/#{gem_file}")
+    puts "Successfully built and moved #{gem_file} to gems/ folder"
   else
     puts "Error: Could not find #{gem_file}"
   end
@@ -29,14 +29,14 @@ end
 desc 'Build, install and test the gem'
 task install: :build do
   version = Jeeves::VERSION
-  gem_file = "gemspec/jeeves-git-commit-#{version}.gem"
+  gem_file = "gems/jeeves-git-commit-#{version}.gem"
   sh "gem install #{gem_file}"
 end
 
 desc 'Build and push the gem to RubyGems'
 task push: :build do
   version = Jeeves::VERSION
-  gem_file = "gemspec/jeeves-git-commit-#{version}.gem"
+  gem_file = "gems/jeeves-git-commit-#{version}.gem"
   
   puts "Pushing jeeves-git-commit version #{version} to RubyGems..."
   begin

@@ -1,4 +1,4 @@
-require_relative '../lib/jeeves/version'
+require_relative 'lib/jeeves/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "jeeves-git-commit"
