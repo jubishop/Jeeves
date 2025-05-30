@@ -77,6 +77,20 @@ module Jeeves
 
     private
 
+    def git_root_dir
+      output = `git rev-parse --show-toplevel 2>/dev/null`.strip
+      output.empty? ? nil : output
+    end
+
+    def get_prompt_file_path
+      git_root = git_root_dir
+      if git_root
+        local_prompt = File.join(git_root, '.jeeves_prompt')
+        return local_prompt if File.exist?(local_prompt)
+      end
+      PROMPT_FILE
+    end
+
     def setup_config_dir
       unless Dir.exist?(CONFIG_DIR)
         FileUtils.mkdir_p(CONFIG_DIR)
@@ -108,7 +122,7 @@ module Jeeves
 
       model = ENV['GIT_COMMIT_MODEL'] || 'openai/gpt-4.1-mini'
       
-      prompt = File.read(PROMPT_FILE).gsub('{{DIFF}}', diff)
+      prompt = File.read(get_prompt_file_path).gsub('{{DIFF}}', diff)
       
       uri = URI.parse('https://openrouter.ai/api/v1/chat/completions')
       http = Net::HTTP.new(uri.host, uri.port)

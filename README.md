@@ -109,14 +109,18 @@ The default model is `openai/gpt-4.1-mini` if not specified.
 
 ### Prompt Configuration
 
-Jeeves supports two levels of prompt configuration:
+Jeeves supports two levels of prompt configuration with the following priority order:
 
-1. **Global Prompt (Default)**: Stored in `~/.config/jeeves/prompt`. This is used for all repositories unless overridden.
-2. **Repository-Specific Prompt**: Create a `.jeeves_prompt` file in the root of your Git repository to customize the prompt for that specific project.
+1. **Repository-Specific Prompt (Highest Priority)**: Create a `.jeeves_prompt` file in the root of your Git repository to customize the prompt for that specific project.
+2. **Global Prompt (Fallback)**: Stored in `~/.config/jeeves/prompt`. This is used when no repository-specific prompt is found.
 
 When you run Jeeves, it will:
-1. First look for a `.jeeves_prompt` file in the root of the current Git repository
-2. If not found, fall back to the global prompt at `~/.config/jeeves/prompt`
+1. **First** look for a `.jeeves_prompt` file in the root of the current Git repository
+2. **If not found**, fall back to the global prompt at `~/.config/jeeves/prompt`
+
+This allows you to have a default prompt for all your projects while still being able to customize the prompt for specific repositories that may have different requirements or coding standards.
+
+**Example Repository-Specific Prompt**: See `example.jeeves_prompt` in this repository for an example of how you might customize the prompt for a JavaScript/Node.js project with specific requirements.
 
 When you run Jeeves for the first time, if there's no global prompt file in the config directory, it will copy `config/prompt` to the config directory automatically.
 

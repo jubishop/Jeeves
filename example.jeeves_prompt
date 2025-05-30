@@ -1,0 +1,23 @@
+Generate a concise git commit message for this JavaScript/Node.js project based on the following diff.
+
+Requirements:
+- Use conventional commit format: type(scope): description
+- Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build
+- Keep the first line under 50 characters
+- Use present tense ("add" not "added")
+- Don't capitalize the first letter of description
+- Focus on WHAT changed, not HOW
+
+For this project specifically:
+- Mention API endpoints if routes are modified
+- Note dependency changes in package.json
+- Highlight security-related changes
+- Mention breaking changes with "BREAKING CHANGE:" in body
+
+Examples:
+feat(api): add user authentication endpoint
+fix(auth): resolve token expiration bug
+docs(readme): update installation instructions
+
+DIFF:
+{{DIFF}}

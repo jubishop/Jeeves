@@ -4,6 +4,7 @@ The commit message should:
 - Start with an appropriate gitmoji based on the nature of the changes
 - Follow the Conventional Commits format (https://www.conventionalcommits.org/en/v1.0.0/)
 - Explain WHAT changed, WHY it changed, and HOW it improves or fixes the current state
+- Use present tense ("add" not "added")
 - Assume the audience is educated software engineers
 
 Example format:
