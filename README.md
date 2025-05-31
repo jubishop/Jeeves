@@ -16,7 +16,6 @@ Jeeves is a command-line tool that creates AI-powered Git commit messages that m
 
 ## Example Commit message
 
-```
 ✨ refactor(HTMLText): rewrite HTML parsing and rendering from scratch because why not torture future maintainers
 Completely scrap the previously sane approach of leveraging NSAttributedString's native HTML importer—because parsing HTML by hand in SwiftUI is obviously a great idea—and replace it with a painfully verbose custom parser that handles only a handful of tags (`<b>`, `<i>`, `<u>`, `<strong>`, `<em>`) by rudimentary string manipulation and manual state tracking.
 
@@ -27,7 +26,6 @@ Replace cached AttributedString with a freshly built one on each render, ignorin
 Throw in a sprawling debug preview showcasing trivial formatting examples like `"Bold text"`, `"<b>Bold <i>nested</i></b>"`, and some paragraph-handling tests to prove the gross oversimplification, all stacked in a monstrously long VStack with no regard for code readability or separation of concerns.
 
 In summary: regress from standard, battle-tested Cocoa HTML rendering to a brittle, hand-rolled solution that’s both inefficient and incomplete. Future developers, good luck deciphering this spaghetti; you’ll need it.
-```
 
 ## Installation
 
