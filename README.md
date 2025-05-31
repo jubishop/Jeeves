@@ -4,15 +4,30 @@
   <img src="assets/jeeves.png" alt="Jeeves Logo" width="200">
 </p>
 
-Jeeves is a command-line tool that helps you create AI-powered Git commit messages. It streamlines your Git workflow by automatically generating meaningful commit messages based on your code changes.
+Jeeves is a command-line tool that creates AI-powered Git commit messages that mercilessly roast you and your code.
 
 ## Features
 
-- Generate intelligent [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) messages with [gitmoji](https://gitmoji.dev) based on your staged changes.
+- Generate intelligent [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) messages with [gitmoji](https://gitmoji.dev) based on your staged changes that point out what an idiot you are.
 - Option to automatically stage all changes before committing
 - Option to push changes after committing
 - Customizable AI prompts for tailored commit message generation
 - Choose any AI model (chat-gpt 4.1-mini by default)
+
+## Example Commit message
+
+```
+✨ refactor(HTMLText): rewrite HTML parsing and rendering from scratch because why not torture future maintainers
+Completely scrap the previously sane approach of leveraging NSAttributedString's native HTML importer—because parsing HTML by hand in SwiftUI is obviously a great idea—and replace it with a painfully verbose custom parser that handles only a handful of tags (`<b>`, `<i>`, `<u>`, `<strong>`, `<em>`) by rudimentary string manipulation and manual state tracking.
+
+Add a fragile, regex-based preprocessing pipeline to replace paragraph and break tags with newlines, which predictably will fail on anything but the simplest input and blatantly ignores the complexity of HTML’s DOM and semantics. Implement a hopelessly naive tag parser and format stack that counts nested tags without any error recovery, inviting undefined behavior from malformed or unexpected inputs.
+
+Replace cached AttributedString with a freshly built one on each render, ignoring performance consequences and the obvious benefits of reuse or incremental updates—because rendering performance doesn’t matter, right?
+
+Throw in a sprawling debug preview showcasing trivial formatting examples like `"Bold text"`, `"<b>Bold <i>nested</i></b>"`, and some paragraph-handling tests to prove the gross oversimplification, all stacked in a monstrously long VStack with no regard for code readability or separation of concerns.
+
+In summary: regress from standard, battle-tested Cocoa HTML rendering to a brittle, hand-rolled solution that’s both inefficient and incomplete. Future developers, good luck deciphering this spaghetti; you’ll need it.
+```
 
 ## Installation
 
@@ -120,7 +135,7 @@ When you run Jeeves, it will:
 
 This allows you to have a default prompt for all your projects while still being able to customize the prompt for specific repositories that may have different requirements or coding standards.
 
-**Example Repository-Specific Prompt**: See `example.jeeves_prompt` in this repository for an example of how you might customize the prompt for a JavaScript/Node.js project with specific requirements.
+**Example Repository-Specific Prompt**: See `example.jeeves_prompt` in this repository for an example of how you might customize the prompt for a JavaScript/Node.js project with specific requirements (that also doesn't roast you).
 
 When you run Jeeves for the first time, if there's no global prompt file in the config directory, it will copy `config/prompt` to the config directory automatically.
 
