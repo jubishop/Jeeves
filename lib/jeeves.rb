@@ -135,13 +135,30 @@ module Jeeves
       request['Authorization'] = "Bearer #{api_key}"
       request['HTTP-Referer'] = 'https://github.com/jeeves-git-commit'
       
-      request.body = {
-        model: model,
-        messages: [
+      # For reasoning models, use system message to enforce output format
+      messages = if model.include?('gpt-5') || model.include?('o1')
+        [
+          { role: 'system', content: 'You are a git commit message generator. Respond ONLY with the final commit message. Do not show your thinking or reasoning process.' },
           { role: 'user', content: prompt }
-        ],
+        ]
+      else
+        [
+          { role: 'user', content: prompt }
+        ]
+      end
+      
+      request_body = {
+        model: model,
+        messages: messages,
         max_tokens: 500
-      }.to_json
+      }
+      
+      # For reasoning models, try to exclude reasoning from output
+      if model.include?('gpt-5') || model.include?('o1')
+        request_body[:reasoning] = { exclude: true }
+      end
+      
+      request.body = request_body.to_json
       
       begin
         response = http.request(request)
