@@ -1,5 +1,7 @@
 Generate a git commit message based on the following diff.
 
+IMPORTANT: Respond ONLY with the final commit message. Do not include any reasoning, thinking, or explanation about how you created the message.
+
 The commit message should:
 - Start with an appropriate gitmoji based on the nature of the changes
 - Follow the Conventional Commits format (https://www.conventionalcommits.org/en/v1.0.0/)
