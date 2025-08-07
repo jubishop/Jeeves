@@ -122,7 +122,9 @@ module Jeeves
 
       model = ENV['GIT_COMMIT_MODEL'] || 'openai/gpt-5-mini'
       
-      prompt = File.read(get_prompt_file_path).gsub('{{DIFF}}', diff)
+      prompt_file_path = get_prompt_file_path
+      puts "Using prompt file: #{prompt_file_path}"
+      prompt = File.read(prompt_file_path).gsub('{{DIFF}}', diff)
       
       uri = URI.parse('https://openrouter.ai/api/v1/chat/completions')
       http = Net::HTTP.new(uri.host, uri.port)
