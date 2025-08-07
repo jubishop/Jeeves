@@ -124,7 +124,7 @@ class Jeeves
       exit 1
     end
 
-    model = ENV['GIT_COMMIT_MODEL'] || 'openai/gpt-4.1-mini'
+    model = ENV['GIT_COMMIT_MODEL'] || 'openai/gpt-5-mini'
     
     # Check for repository-specific prompt file first
     repo_prompt_file = File.join(git_root_dir, '.jeeves_prompt')

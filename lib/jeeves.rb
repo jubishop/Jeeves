@@ -120,7 +120,7 @@ module Jeeves
         exit 1
       end
 
-      model = ENV['GIT_COMMIT_MODEL'] || 'openai/gpt-4.1-mini'
+      model = ENV['GIT_COMMIT_MODEL'] || 'openai/gpt-5-mini'
       
       prompt = File.read(get_prompt_file_path).gsub('{{DIFF}}', diff)
       
@@ -146,12 +146,35 @@ module Jeeves
         
         if response.code == '200'
           result = JSON.parse(response.body)
-          commit_message = result['choices'][0]['message']['content'].strip
-          puts "Generated commit message:"
-          puts "------------------------"
-          puts commit_message
-          puts "------------------------"
-          return commit_message
+          
+          # Better error handling for API response structure
+          if result['choices'] && result['choices'][0] && result['choices'][0]['message']
+            message = result['choices'][0]['message']
+            commit_message = message['content']
+            
+            # Handle OpenAI reasoning models (like GPT-5 mini) where content might be empty
+            # but reasoning contains the actual response
+            if (!commit_message || commit_message.strip.empty?) && message['reasoning']
+              commit_message = message['reasoning']
+            end
+            
+            if commit_message && !commit_message.strip.empty?
+              commit_message = commit_message.strip
+              puts "Generated commit message:"
+              puts "------------------------"
+              puts commit_message
+              puts "------------------------"
+              return commit_message
+            else
+              puts "Error: API returned empty commit message"
+              puts "Full API response: #{response.body}"
+              exit 1
+            end
+          else
+            puts "Error: Unexpected API response structure"
+            puts "Full API response: #{response.body}"
+            exit 1
+          end
         else
           puts "API Error (#{response.code}): #{response.body}"
           exit 1

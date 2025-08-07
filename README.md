@@ -12,7 +12,7 @@ Jeeves is a command-line tool that creates AI-powered Git commit messages that m
 - Option to automatically stage all changes before committing
 - Option to push changes after committing
 - Customizable AI prompts for tailored commit message generation
-- Choose any AI model (chat-gpt 4.1-mini by default)
+- Choose any AI model (chat-gpt 5-mini by default)
 
 ## Example Commit message
 
@@ -118,7 +118,7 @@ Optionally, you can specify a different model by setting:
 export GIT_COMMIT_MODEL="openai/gpt-4o"
 ```
 
-The default model is `openai/gpt-4.1-mini` if not specified.
+The default model is `openai/gpt-5-mini` if not specified.
 
 ### Prompt Configuration
 
