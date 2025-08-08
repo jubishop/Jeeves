@@ -115,10 +115,10 @@ You can get an API key from [OpenRouter](https://openrouter.ai/).
 Optionally, you can specify a different model by setting:
 
 ```bash
-export GIT_COMMIT_MODEL="openai/gpt-5-chat"
+export GIT_COMMIT_MODEL="openai/gpt-4o"
 ```
 
-The default model is `openai/gpt-5-mini` if not specified.
+The default model is `openai/gpt-4o-mini` if not specified.
 
 ### Prompt Configuration
 
