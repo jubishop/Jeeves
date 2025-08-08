@@ -150,13 +150,12 @@ module Jeeves
       request_body = {
         model: model,
         messages: messages,
-        max_tokens: 500
+        max_tokens: 1000,
+        stop: ["END_COMMIT"]
       }
       
-      # For reasoning models, try to exclude reasoning from output
-      if model.include?('gpt-5') || model.include?('o1')
-        request_body[:reasoning] = { exclude: true }
-      end
+      # Remove any reasoning parameters that cause API errors
+      # GPT-5 mini will put reasoning in the reasoning field regardless
       
       request.body = request_body.to_json
       
@@ -174,7 +173,38 @@ module Jeeves
             # Handle OpenAI reasoning models (like GPT-5 mini) where content might be empty
             # but reasoning contains the actual response
             if (!commit_message || commit_message.strip.empty?) && message['reasoning']
-              commit_message = message['reasoning']
+              reasoning_text = message['reasoning']
+              
+              # Extract the final commit message from reasoning text
+              # Look for lines that look like actual commit messages (starting with emoji or conventional format)
+              lines = reasoning_text.split(/\n+/)
+              potential_commit_lines = []
+              
+              lines.each do |line|
+                line = line.strip
+                next if line.empty?
+                next if line.match?(/^\*\*.*\*\*$/) # Skip **heading** lines
+                next if line.match?(/^(I |I'm |I need |I'll |Let me |The |This |Now |For |Since |My |Looking |Based |Here |When )/i) # Skip reasoning sentences
+                
+                # Look for lines that start with emoji or conventional commit format
+                if line.match?(/^(✨|🐛|📝|🚀|🔧|♻️|💄|⚡|🔥|🎉|📦|🏷️|🚑|💚|⬇️|⬆️|📌|👷|📈|➕|➖|🔒|🔐|🍻|💬|🗃️|🚸|🏗️|📱|🤡|🥚|🙈|📸|⚗️|🔍|🏷️|🌐|♿|💡|🍺|🗃️|🔊|🔇|👥|🚚|📄|🍻|👽|💥|🍱|♿|💫|🗑️|🧪|🩺|🧱|🧑‍💻|👔)/) ||
+                      line.match?(/^(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert)(\(.+\))?:/) ||
+                      line.match?(/^:[a-z_]+:/) # gitmoji format like :sparkles:
+                  potential_commit_lines << line
+                elsif potential_commit_lines.any? && line.length > 10 # Continuation lines after a commit header
+                  potential_commit_lines << line
+                end
+              end
+              
+              if potential_commit_lines.any?
+                commit_message = potential_commit_lines.join("\n\n")
+              else
+                # If we can't parse it, just show a helpful message
+                puts "Warning: Could not extract commit message from reasoning output."
+                puts "Raw reasoning text:"
+                puts reasoning_text
+                exit 1
+              end
             end
             
             if commit_message && !commit_message.strip.empty?

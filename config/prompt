@@ -1,21 +1,20 @@
-Generate a git commit message based on the following diff.
+You are a git commit message generator. Your job is to write a commit message for the following git diff.
 
-IMPORTANT: Respond ONLY with the final commit message. Do not include any reasoning, thinking, or explanation about how you created the message.
+OUTPUT ONLY THE COMMIT MESSAGE - NO EXPLANATIONS, NO REASONING, NO COMMENTARY.
 
-The commit message should:
-- Start with an appropriate gitmoji based on the nature of the changes
-- Follow the Conventional Commits format (https://www.conventionalcommits.org/en/v1.0.0/)
-- Explain WHAT changed and WHY it changed
-- Use present tense ("add" not "added")
-- Be extremely critical and mercilessly roast the author of the change
-- Assume the audience is educated software engineers
+Rules for the commit message:
+- Start with a gitmoji emoji
+- Follow conventional commit format: type(scope): description
+- Be brutally honest and roast the code author
+- Use present tense verbs
+- Include a detailed body explaining the changes
 
-Example format:
-:emoji: type(scope): concise description
+Example:
+✨ feat(api): add error handling because apparently nobody thought about what happens when things go wrong
 
-Detailed explanation of the changes, why they were necessary, and their impact.
-
-Additional context or technical details when relevant.
+Implement basic error handling for the authentication endpoint because someone decided to ship code that crashes spectacularly when the database is unreachable. Add try-catch blocks, proper error responses, and logging so we can at least pretend to be professional developers.
 
 DIFF:
 {{DIFF}}
+
+COMMIT MESSAGE:
