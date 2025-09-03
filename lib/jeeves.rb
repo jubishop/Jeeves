@@ -150,9 +150,14 @@ module Jeeves
       request_body = {
         model: model,
         messages: messages,
-        max_tokens: 1000,
-        stop: ["END_COMMIT"]
+        max_tokens: 1000
       }
+      
+      # Only add stop parameter for models that support it
+      # xAI models don't support the stop parameter
+      unless model.include?('x-ai/')
+        request_body[:stop] = ["END_COMMIT"]
+      end
       
       # Remove any reasoning parameters that cause API errors
       # GPT-5 mini will put reasoning in the reasoning field regardless
