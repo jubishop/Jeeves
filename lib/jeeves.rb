@@ -121,6 +121,7 @@ module Jeeves
       end
 
       model = ENV['GIT_COMMIT_MODEL'] || 'x-ai/grok-code-fast-1'
+      puts "Using model: #{model}"
       
       prompt_file_path = get_prompt_file_path
       puts "Using prompt file: #{prompt_file_path}"
