@@ -4,7 +4,7 @@
   <img src="assets/jeeves.png" alt="Jeeves Logo" width="200">
 </p>
 
-Jeeves is a command-line tool that creates AI-powered Git commit messages that mercilessly roast you and your code.
+Jeeves is a command-line tool that creates AI-powered Git commit messages that savagely roasts you and your code.
 
 ## Features
 
