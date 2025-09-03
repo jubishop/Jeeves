@@ -66,7 +66,7 @@ chmod +x bin/jeeves
 
 **API Integration**: Uses OpenRouter API with configurable models via environment variables:
 - `OPENROUTER_API_KEY` (required)
-- `GIT_COMMIT_MODEL` (defaults to `openai/gpt-5-mini`)
+- `GIT_COMMIT_MODEL` (defaults to `x-ai/grok-code-fast-1`)
 
 ### Testing Framework
 
@@ -85,7 +85,7 @@ Uses Minitest with extensive mocking:
 
 ### Environment Variables Required
 - `OPENROUTER_API_KEY`: Required for API access
-- `GIT_COMMIT_MODEL`: Optional model override (defaults to `openai/gpt-5-mini`)
+- `GIT_COMMIT_MODEL`: Optional model override (defaults to `x-ai/grok-code-fast-1`)
 
 ### Key Constants and Paths
 - `CONFIG_DIR`: `~/.config/jeeves`

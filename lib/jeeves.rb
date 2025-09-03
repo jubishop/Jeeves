@@ -120,7 +120,7 @@ module Jeeves
         exit 1
       end
 
-      model = ENV['GIT_COMMIT_MODEL'] || 'openai/gpt-4o-mini'
+      model = ENV['GIT_COMMIT_MODEL'] || 'x-ai/grok-code-fast-1'
       
       prompt_file_path = get_prompt_file_path
       puts "Using prompt file: #{prompt_file_path}"
@@ -180,7 +180,7 @@ module Jeeves
             else
               puts "Error: API returned empty commit message"
               puts "This model (#{model}) may not be compatible with direct output."
-              puts "Try using a different model with: export GIT_COMMIT_MODEL=\"openai/gpt-4o-mini\""
+              puts "Try using a different model with: export GIT_COMMIT_MODEL=\"x-ai/grok-code-fast-1\""
               exit 1
             end
           else

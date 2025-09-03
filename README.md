@@ -118,7 +118,7 @@ Optionally, you can specify a different model by setting:
 export GIT_COMMIT_MODEL="openai/gpt-4o"
 ```
 
-The default model is `openai/gpt-4o-mini` if not specified.
+The default model is `x-ai/grok-code-fast-1` if not specified.
 
 ### Prompt Configuration
 

@@ -65,7 +65,7 @@ Two-tier prompt configuration (checked in order):
 ## Environment Variables
 
 - **`OPENROUTER_API_KEY`** (required): OpenRouter API key for AI model access
-- **`GIT_COMMIT_MODEL`** (optional): Model override (default: `openai/gpt-4o-mini`)
+- **`GIT_COMMIT_MODEL`** (optional): Model override (default: `x-ai/grok-code-fast-1`)
 
 Used in `lib/jeeves.rb:generate_commit_message()` for API requests.
 
