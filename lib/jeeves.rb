@@ -13,7 +13,8 @@ module Jeeves
     def initialize
       @options = {
         all: false,
-        push: false
+        push: false,
+        dry_run: false
       }
       setup_config_dir
     end
@@ -31,6 +32,10 @@ module Jeeves
 
         opts.on('-p', '--push', 'Push changes after committing') do
           @options[:push] = true
+        end
+
+        opts.on('-d', '--dry-run', 'Generate commit message without committing') do
+          @options[:dry_run] = true
         end
 
         opts.on('-h', '--help', 'Show this help message') do
@@ -57,6 +62,16 @@ module Jeeves
 
       # Get AI-generated commit message
       commit_message = generate_commit_message(diff)
+      
+      # If dry-run mode, just output the message and exit
+      if @options[:dry_run]
+        puts "\nDry-run mode: Commit message would be:"
+        puts "============================================"
+        puts commit_message
+        puts "============================================"
+        puts "No commit was created (dry-run mode)"
+        return
+      end
       
       # Write commit message to temp file for git to use
       temp_file = File.join(Dir.tmpdir, 'jeeves_commit_message')

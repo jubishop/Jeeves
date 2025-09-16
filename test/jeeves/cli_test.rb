@@ -103,6 +103,7 @@ class CLITest < Minitest::Test
     cli1.parse_options
     assert_equal true, cli1.instance_variable_get(:@options)[:all]
     assert_equal false, cli1.instance_variable_get(:@options)[:push]
+    assert_equal false, cli1.instance_variable_get(:@options)[:dry_run]
     
     # Test with -p option
     cli2 = Jeeves::CLI.new
@@ -110,13 +111,29 @@ class CLITest < Minitest::Test
     cli2.parse_options
     assert_equal false, cli2.instance_variable_get(:@options)[:all]
     assert_equal true, cli2.instance_variable_get(:@options)[:push]
+    assert_equal false, cli2.instance_variable_get(:@options)[:dry_run]
     
-    # Test with both options
+    # Test with -d/--dry-run option
     cli3 = Jeeves::CLI.new
-    ARGV.replace(['-a', '-p'])
+    ARGV.replace(['-d'])
     cli3.parse_options
-    assert_equal true, cli3.instance_variable_get(:@options)[:all]
-    assert_equal true, cli3.instance_variable_get(:@options)[:push]
+    assert_equal false, cli3.instance_variable_get(:@options)[:all]
+    assert_equal false, cli3.instance_variable_get(:@options)[:push]
+    assert_equal true, cli3.instance_variable_get(:@options)[:dry_run]
+    
+    # Test with --dry-run long form
+    cli4 = Jeeves::CLI.new
+    ARGV.replace(['--dry-run'])
+    cli4.parse_options
+    assert_equal true, cli4.instance_variable_get(:@options)[:dry_run]
+    
+    # Test with all options
+    cli5 = Jeeves::CLI.new
+    ARGV.replace(['-a', '-p', '-d'])
+    cli5.parse_options
+    assert_equal true, cli5.instance_variable_get(:@options)[:all]
+    assert_equal true, cli5.instance_variable_get(:@options)[:push]
+    assert_equal true, cli5.instance_variable_get(:@options)[:dry_run]
     
     # Reset ARGV
     ARGV.replace([])
@@ -190,5 +207,79 @@ class CLITest < Minitest::Test
       File.unstub(:read)
       FileUtils.unstub(:cp)
     end
+  end
+  
+  def test_dry_run_functionality
+    # Set up a CLI instance with dry-run enabled
+    cli = Jeeves::CLI.new
+    ARGV.replace(['-d'])
+    cli.parse_options
+    
+    # Mock the diff to return something
+    cli.stubs(:`).with('git diff --staged').returns('test diff content')
+    
+    # Mock the generate_commit_message method to return a test message
+    test_commit_message = "feat: 🚀 add new feature\n\nThis is a test commit message."
+    cli.stubs(:generate_commit_message).returns(test_commit_message)
+    
+    # Capture stdout to verify the dry-run output
+    require 'stringio'
+    original_stdout = $stdout
+    $stdout = StringIO.new
+    
+    # Run the CLI
+    cli.run
+    
+    # Get the captured output
+    output = $stdout.string
+    
+    # Restore stdout
+    $stdout = original_stdout
+    
+    # Verify the output contains the dry-run message
+    assert_includes output, "Dry-run mode: Commit message would be:"
+    assert_includes output, "============================================"
+    assert_includes output, test_commit_message
+    assert_includes output, "No commit was created (dry-run mode)"
+    
+    # Verify that system commands for commit and push were not called
+    # We need to ensure system method was not called for git commit
+    Object.any_instance.expects(:system).with(regexp_matches(/git commit/)).never
+    Object.any_instance.expects(:system).with('git push').never
+    
+    # Reset ARGV
+    ARGV.replace([])
+  end
+  
+  def test_dry_run_with_no_staged_changes
+    # Test that dry-run still respects the "no changes staged" check
+    cli = Jeeves::CLI.new
+    ARGV.replace(['-d'])
+    cli.parse_options
+    
+    # Mock empty diff
+    cli.stubs(:`).with('git diff --staged').returns('')
+    
+    # Capture stdout to verify the exit behavior
+    require 'stringio'
+    original_stdout = $stdout
+    $stdout = StringIO.new
+    
+    # Expect the CLI to exit with status 1 for no staged changes
+    assert_raises(SystemExit) do
+      cli.run
+    end
+    
+    # Get the captured output
+    output = $stdout.string
+    
+    # Restore stdout
+    $stdout = original_stdout
+    
+    # Verify the "no changes staged" message is shown
+    assert_includes output, "No changes staged for commit."
+    
+    # Reset ARGV
+    ARGV.replace([])
   end
 end
