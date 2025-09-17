@@ -11,6 +11,7 @@ Jeeves is a command-line tool that creates AI-powered Git commit messages that s
 - Generate intelligent [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) messages with [gitmoji](https://gitmoji.dev) based on your staged changes that point out what an idiot you are.
 - Option to automatically stage all changes before committing.
 - Option to push changes after committing.
+- Automatically detects piped input and outputs just the commit message for easy scripting.
 - Customizable AI prompts for tailored commit message generation.
 - Choose any AI model (chat-gpt 5-mini by default).
 
@@ -151,8 +152,11 @@ Options:
 
 - `-a, --all`: Stage all changes before committing
 - `-p, --push`: Push changes after committing
+- `-d, --dry-run`: Generate commit message without committing
 - `--version`: Show version information
 - `-h, --help`: Show help message
+
+**Note**: When Jeeves detects piped input, it automatically outputs just the commit message without any formatting or logging. This makes it seamless to use in scripts and pipelines.
 
 ## Examples
 
@@ -165,6 +169,22 @@ jeeves -a
 
 # Stage all changes, generate a commit message, and push
 jeeves -a -p
+
+# Automatically detects piped input and outputs just the message
+git diff | jeeves
+
+# Generate a message for specific files
+git diff HEAD~1 -- src/*.rb | jeeves
+
+# Use with other git commands
+git show HEAD | jeeves
+
+# Store commit message in a variable (bash)
+MSG=$(git diff | jeeves)
+echo "$MSG"
+
+# Use in a git alias to commit with AI-generated message
+git config --global alias.ai-commit '!git diff --staged | jeeves | git commit -F -'
 ```
 
 ## License

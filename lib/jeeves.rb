@@ -34,20 +34,40 @@ module Jeeves
           @options[:push] = true
         end
 
-        opts.on('-d', '--dry-run', 'Generate commit message without committing') do
-          @options[:dry_run] = true
-        end
+      opts.on('-d', '--dry-run', 'Generate commit message without committing') do
+        @options[:dry_run] = true
+      end
 
-        opts.on('-h', '--help', 'Show this help message') do
-          puts opts
-          exit
-        end
+      opts.on('-h', '--help', 'Show this help message') do
+        puts opts
+        exit
+      end
       end.parse!
     end
 
     def run
       parse_options
       
+      # Automatically detect stdin input
+      has_stdin_input = !STDIN.tty? || STDIN.closed?
+      
+      # Handle stdin mode when auto-detected
+      if has_stdin_input
+        # Read diff from stdin
+        diff = STDIN.read
+        
+        if diff.empty?
+          puts "Error: No diff content provided via stdin."
+          exit 1
+        end
+        
+        # Generate commit message and output just the message
+        commit_message = generate_commit_message(diff, suppress_output: true)
+        puts commit_message
+        return
+      end
+      
+      # Normal mode: work with git staged changes
       if @options[:all]
         system('git add -A')
       end
@@ -128,7 +148,7 @@ module Jeeves
       end
     end
 
-    def generate_commit_message(diff)
+    def generate_commit_message(diff, suppress_output: false)
       api_key = ENV['OPENROUTER_API_KEY']
       if api_key.nil? || api_key.empty?
         puts "Error: OPENROUTER_API_KEY environment variable not set"
@@ -136,10 +156,10 @@ module Jeeves
       end
 
       model = ENV['GIT_COMMIT_MODEL'] || 'x-ai/grok-code-fast-1'
-      puts "Using model: #{model}"
+      puts "Using model: #{model}" unless suppress_output
       
       prompt_file_path = get_prompt_file_path
-      puts "Using prompt file: #{prompt_file_path}"
+      puts "Using prompt file: #{prompt_file_path}" unless suppress_output
       prompt = File.read(prompt_file_path).gsub('{{DIFF}}', diff)
       
       uri = URI.parse('https://openrouter.ai/api/v1/chat/completions')
@@ -193,10 +213,13 @@ module Jeeves
             
             if commit_message && !commit_message.strip.empty?
               commit_message = commit_message.strip
-              puts "Generated commit message:"
-              puts "------------------------"
-              puts commit_message
-              puts "------------------------"
+              # Only show the formatted message in normal mode
+              unless suppress_output
+                puts "Generated commit message:"
+                puts "------------------------"
+                puts commit_message
+                puts "------------------------"
+              end
               return commit_message
             else
               puts "Error: API returned empty commit message"
