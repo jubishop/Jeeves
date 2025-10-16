@@ -4,6 +4,7 @@ require 'uri'
 require 'json'
 require 'fileutils'
 require 'tmpdir'
+require 'openssl'
 
 module Jeeves
   class CLI
@@ -165,6 +166,12 @@ module Jeeves
       uri = URI.parse('https://openrouter.ai/api/v1/chat/completions')
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+
+      # Use system certificate store for SSL verification
+      store = OpenSSL::X509::Store.new
+      store.set_default_paths
+      http.cert_store = store
       
       request = Net::HTTP::Post.new(uri.request_uri)
       request['Content-Type'] = 'application/json'
