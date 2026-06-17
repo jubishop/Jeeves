@@ -1,5 +1,11 @@
 # Jeeves
 
+## Project Memory
+
+Project-specific memory lives in `memory/`.
+Use `memory/README.md` as the canonical index, with one linked Markdown file per memory in `memory/`.
+When asked to save, recall, or update a memory, read and write those files directly. Check memory before guessing about prior project-specific decisions or environment details.
+
 ## Project Overview
 
 Jeeves is a Ruby gem that generates AI-powered Git commit messages using OpenRouter API. It's a CLI tool that analyzes staged git changes and creates conventional commit messages with gitmoji that "mercilessly roast" the code author.
