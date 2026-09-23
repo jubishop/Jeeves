@@ -149,4 +149,4 @@ If encountered during development - no common issues found in current reconnaiss
 
 - **End-user setup and usage**: See [README.md](README.md)
 - **Project history and examples**: See [README.md](README.md) Development section
-- **Claude-specific context**: See [CLAUDE.md](CLAUDE.md)
+- **Project instructions**: See [AGENTS.md](AGENTS.md)
