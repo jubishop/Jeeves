@@ -1,52 +1,39 @@
+# frozen_string_literal: true
+
+require_relative 'lib/jeeves/runtime'
+Jeeves::Runtime.check!
 require 'rake/testtask'
 require 'fileutils'
 require_relative 'lib/jeeves/version'
 
-Rake::TestTask.new(:test) do |t|
-  t.libs << 'test'
-  t.libs << 'lib'
-  t.test_files = FileList['test/**/*_test.rb']
+Rake::TestTask.new(:test) do |task|
+  task.libs << 'test' << 'lib'
+  task.test_files = FileList['test/jeeves/*_test.rb']
 end
 
-desc 'Build the gem and place it in the gems/ folder'
+desc 'Lint the application and tests'
+task :lint do
+  files = FileList['lib/*.rb', 'lib/jeeves/*.rb', 'test/*.rb', 'test/jeeves/*_test.rb']
+  ruby '-S', 'rubocop', '--lint', '--cache', 'false', *files, 'bin/jeeves', 'Rakefile', 'jeeves.gemspec'
+end
+
+desc 'Build the gem in gems/'
 task :build do
-  # Build the gem
-  sh "gem build jeeves.gemspec"
-  
-  # Get the version
-  version = Jeeves::VERSION
-  
-  # Move the gem file to the gems/ folder
-  gem_file = "jeeves-git-commit-#{version}.gem"
-  if File.exist?(gem_file)
-    FileUtils.mv(gem_file, "gems/#{gem_file}")
-    puts "Successfully built and moved #{gem_file} to gems/ folder"
-  else
-    puts "Error: Could not find #{gem_file}"
-  end
+  FileUtils.mkdir_p('gems')
+  sh 'gem', 'build', 'jeeves.gemspec', '--output', "gems/jeeves-git-commit-#{Jeeves::VERSION}.gem"
 end
 
-desc 'Build, install and test the gem'
-task install: :build do
-  version = Jeeves::VERSION
-  gem_file = "gems/jeeves-git-commit-#{version}.gem"
-  sh "gem install #{gem_file}"
+desc 'Run application tests, lint, and package validation'
+task validate: %i[test lint build]
+
+desc 'Build, test, and install the gem'
+task install: %i[test build] do
+  sh 'gem', 'install', "gems/jeeves-git-commit-#{Jeeves::VERSION}.gem"
 end
 
-desc 'Build and push the gem to RubyGems'
-task push: :build do
-  version = Jeeves::VERSION
-  gem_file = "gems/jeeves-git-commit-#{version}.gem"
-  
-  puts "Pushing jeeves-git-commit version #{version} to RubyGems..."
-  begin
-    sh "gem push #{gem_file}"
-    puts "Successfully pushed #{gem_file} to RubyGems"
-  rescue => e
-    puts "Error pushing gem to RubyGems: #{e.message}"
-    puts "Hint: Make sure you're logged in to RubyGems with 'gem signin'"
-    exit 1
-  end
+desc 'Validate and publish to RubyGems (explicit release action)'
+task push: :validate do
+  sh 'gem', 'push', "gems/jeeves-git-commit-#{Jeeves::VERSION}.gem"
 end
 
 task default: :test

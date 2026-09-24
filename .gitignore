@@ -33,3 +33,14 @@ coverage/
 
 # Ignore log files
 *.log
+# Project knowledge and disposable worktrees
+.DS_Store
+.cache/
+.config/qmd/
+.env
+.env.*
+!.env.example
+.envrc.local
+__pycache__/
+*.py[cod]
+worktrees/

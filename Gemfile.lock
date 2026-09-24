@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    jeeves-git-commit (2.6.0)
+    jeeves-git-commit (3.0.0)
       json (~> 2.0)
 
 GEM
@@ -19,8 +19,6 @@ GEM
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     minitest (5.27.0)
-    mocha (2.7.1)
-      ruby2_keywords (>= 0.0.5)
     parallel (1.27.0)
     parser (3.3.8.0)
       ast (~> 2.4.1)
@@ -47,7 +45,6 @@ GEM
       parser (>= 3.3.7.2)
       prism (~> 1.4)
     ruby-progressbar (1.13.0)
-    ruby2_keywords (0.0.5)
     unicode-display_width (3.1.4)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.3.0)
@@ -63,10 +60,9 @@ PLATFORMS
 DEPENDENCIES
   jeeves-git-commit!
   minitest (~> 5.0)
-  mocha (~> 2.0)
   rake (~> 13.0)
   rubocop (~> 1.21)
   webmock (~> 3.0)
 
 BUNDLED WITH
-   2.6.8
+  4.0.21

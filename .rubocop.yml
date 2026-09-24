@@ -1,0 +1,15 @@
+AllCops:
+  NewCops: disable
+  TargetRubyVersion: 3.3
+  Include:
+    - lib/*.rb
+    - lib/jeeves/*.rb
+    - test/*.rb
+    - test/jeeves/*_test.rb
+    - bin/jeeves
+    - Rakefile
+    - jeeves.gemspec
+  Exclude:
+    - worktrees/**/*
+    - vendor/**/*
+    - gems/**/*

@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+import subprocess
+import sys
+from pathlib import Path
+sys.dont_write_bytecode = True
+from _checks import main
+
+result = main()
+if result == 0 and sys.argv[1:] == ['--full']:
+    try:
+        result = subprocess.run(['bundle', 'exec', 'rake', 'validate'],
+                                cwd=Path(__file__).resolve().parents[1]).returncode
+    except OSError as error:
+        print(error, file=sys.stderr)
+        result = 1
+sys.exit(result)

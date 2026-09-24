@@ -1,285 +1,260 @@
+# frozen_string_literal: true
+
 require_relative '../test_helper'
-require 'fileutils'
-require 'tempfile'
 
 class CLITest < Minitest::Test
-  def setup
-    # Set up completely isolated test environment with mocked API calls
-    setup_test_environment
-    
-    # The test_config_dir and CONFIG_DIR are now managed by setup_test_environment
-    # Create a test prompt file in the isolated test config directory
-    @prompt_file = File.join(@test_config_dir, 'prompt')
-    File.write(@prompt_file, "Test prompt with {{DIFF}} placeholder")
-    
-    # Create a mock bundled prompt file in the isolated project config directory
-    @bundled_prompt_dir = File.join(@test_root_dir, 'config')
-    @bundled_prompt_file = File.join(@bundled_prompt_dir, 'prompt')
-    # The file is already created by create_isolated_project_structure in test_helper
-    
-    # Store the original bundle_prompt path method to patch for tests if needed
-    if Jeeves::CLI.private_method_defined?(:setup_config_dir)
-      @original_setup_config_dir = Jeeves::CLI.instance_method(:setup_config_dir)
+  LOCAL = 'http://127.0.0.1:11434/api/chat'
+  CLOUD = 'https://openrouter.ai/api/v1/chat/completions'
+
+  def test_local_settings_and_literal_prompt_reach_server_without_cloud_credentials
+    with_cli_environment do |env, directory|
+      env.delete('OPENROUTER_API_KEY')
+      env['GIT_COMMIT_LOCAL_CONTEXT'] = '65536'
+      diff = "+replacement='\\1'; match='\\&'"
+      request = stub_request(:post, LOCAL).with do |http|
+        body = JSON.parse(http.body)
+        assert_nil http.headers['Authorization']
+        assert_nil http.headers['Http-Referer']
+        assert_equal 'local-model', body['model']
+        assert_equal [{ 'role' => 'user', 'content' => "Describe #{diff}" }], body['messages']
+        assert_equal false, body['stream']
+        assert_equal false, body['think']
+        assert_equal 65_536, body.dig('options', 'num_ctx')
+        true
+      end.to_return(body: { message: { content: 'fix: local message', thinking: 'ignored' } }.to_json)
+      assert_equal [0, "🐛 fix: local message\n", ''], invoke(env, directory, diff: diff)
+      assert_requested request
+      assert_not_requested(:post, CLOUD)
     end
   end
-  
-  def teardown
-    # Use the common teardown_test_environment which now handles:
-    # - Restoring CONFIG_DIR constant
-    # - Cleaning up all test directories
-    # - Restoring ENV variables
-    teardown_test_environment
-    
-    # If we patched any methods during testing, restore them
-    if defined?(@original_setup_config_dir) && Jeeves::CLI.private_method_defined?(:setup_config_dir)
-      Jeeves::CLI.send(:remove_method, :setup_config_dir)
-      Jeeves::CLI.send(:define_method, :setup_config_dir, @original_setup_config_dir)
+
+  def test_local_and_model_flags_override_saved_cloud_settings
+    with_cli_environment do |env, directory|
+      env['GIT_COMMIT_PROVIDER'] = 'openrouter'
+      request = local_request.with { |http| JSON.parse(http.body)['model'] == 'override' }
+      assert_equal 0, invoke(env, directory, args: %w[--local --model override]).first
+      assert_requested request
     end
   end
-  
-  def test_initialize
-    cli = Jeeves::CLI.new
-    assert_equal false, cli.instance_variable_get(:@options)[:all]
-    assert_equal false, cli.instance_variable_get(:@options)[:push]
+
+  def test_cloud_override_preserves_cloud_model_and_authentication
+    with_cli_environment do |env, directory|
+      env['GIT_COMMIT_LOCAL_CONTEXT'] = 'invalid-unused-local-setting'
+      request = cloud_request.with(headers: { 'Authorization' => 'Bearer test-key' }) do |http|
+        JSON.parse(http.body)['model'] == 'cloud-model'
+      end
+      assert_equal 0, invoke(env, directory, args: %w[--provider openrouter]).first
+      assert_requested request
+      assert_not_requested(:post, LOCAL)
+    end
   end
-  
-  def test_setup_config_dir
-    # This test verifies that setup_config_dir correctly copies the bundled prompt
-    # to the user config directory when it doesn't exist
-    
-    # Make sure we're using our isolated test directories
-    assert_equal @test_config_dir, Jeeves::CLI::CONFIG_DIR, "Should be using isolated test config directory"
-    
-    # First, ensure the prompt file doesn't exist in the user config
-    File.unlink(@prompt_file) if File.exist?(@prompt_file)
-    refute File.exist?(@prompt_file), "Prompt file should not exist before test"
-    
-    # Make sure the bundled prompt exists in our test project structure
-    assert File.exist?(@bundled_prompt_file), "Bundled prompt file should exist in test env"
-    bundled_content = File.read(@bundled_prompt_file)
-    
-    # Create a custom implementation of setup_config_dir that uses our test paths
-    Jeeves::CLI.class_eval do
-      alias_method :original_setup_config_dir, :setup_config_dir if method_defined?(:setup_config_dir)
-      
-      define_method(:setup_config_dir) do
-        unless Dir.exist?(Jeeves::CLI::CONFIG_DIR)
-          FileUtils.mkdir_p(Jeeves::CLI::CONFIG_DIR)
-        end
-        
-        unless File.exist?(Jeeves::CLI::PROMPT_FILE)
-          test_bundled_prompt = File.join(File.dirname(Jeeves::CLI::CONFIG_DIR), 'config', 'prompt')
-          if File.exist?(test_bundled_prompt)
-            FileUtils.cp(test_bundled_prompt, Jeeves::CLI::PROMPT_FILE)
-          end
-        end
+
+  def test_defaults_use_openrouter_and_xai_without_stop_parameter
+    with_cli_environment do |env, directory|
+      env.delete('GIT_COMMIT_PROVIDER')
+      env.delete('GIT_COMMIT_MODEL')
+      request = cloud_request.with do |http|
+        body = JSON.parse(http.body)
+        body['model'] == 'x-ai/grok-code-fast-1' && !body.key?('stop')
+      end
+      assert_equal 0, invoke(env, directory).first
+      assert_requested request
+    end
+  end
+
+  def test_reasoning_cloud_models_receive_system_instruction
+    with_cli_environment do |env, directory|
+      env['GIT_COMMIT_PROVIDER'] = 'openrouter'
+      env['GIT_COMMIT_MODEL'] = 'openai/gpt-5-mini'
+      request = cloud_request.with do |http|
+        body = JSON.parse(http.body)
+        body['messages'].first['role'] == 'system' && body['stop'] == ['END_COMMIT']
+      end
+      assert_equal 0, invoke(env, directory).first
+      assert_requested request
+    end
+  end
+
+  def test_invalid_configuration_fails_before_network_access
+    cases = [
+      ['GIT_COMMIT_PROVIDER', 'typo'], ['GIT_COMMIT_LOCAL_MODEL', ' '],
+      ['GIT_COMMIT_LOCAL_CONTEXT', '0'], ['GIT_COMMIT_LOCAL_CONTEXT', 'abc'],
+      ['GIT_COMMIT_MAX_DIFF_BYTES', '-1'], ['GIT_COMMIT_MESSAGE_FORMAT', 'json'],
+      ['OLLAMA_HOST', 'http://localhost:11434?invalid=true'],
+      ['OLLAMA_HOST', 'ftp://localhost'], ['OLLAMA_HOST', 'http://user:password@localhost']
+    ]
+    cases.each do |key, value|
+      with_cli_environment do |env, directory|
+        env[key] = value
+        code, output, errors = invoke(env, directory)
+        assert_equal 1, code, "#{key}=#{value}"
+        assert_empty output
+        assert_includes errors, 'Error:'
       end
     end
-    
-    # Create a CLI instance and call setup_config_dir
-    cli = Jeeves::CLI.new
-    cli.send(:setup_config_dir) # Explicitly call the private method
-    
-    # Verify the prompt file was correctly copied to the user config directory
-    assert File.exist?(@prompt_file), "Prompt file should exist after setup_config_dir"
-    assert_equal bundled_content, File.read(@prompt_file), "Prompt content should match the bundled file"
-    
-    # Properly restore the original method without removing it completely
-    if Jeeves::CLI.method_defined?(:original_setup_config_dir)
-      Jeeves::CLI.class_eval do
-        # Define a new method with the same body as the original one
-        remove_method :setup_config_dir
-        alias_method :setup_config_dir, :original_setup_config_dir
-        remove_method :original_setup_config_dir
+    assert_not_requested(:post, LOCAL)
+    assert_not_requested(:post, CLOUD)
+  end
+
+  def test_cloud_requires_api_key
+    with_cli_environment do |env, directory|
+      env['GIT_COMMIT_PROVIDER'] = 'openrouter'
+      env.delete('OPENROUTER_API_KEY')
+      code, output, errors = invoke(env, directory)
+      assert_equal 1, code
+      assert_empty output
+      assert_includes errors, 'OPENROUTER_API_KEY'
+    end
+  end
+
+  def test_custom_local_urls
+    { 'localhost:11435' => 'http://localhost:11435/api/chat',
+      'https://local.example:8443/ollama/' => 'https://local.example:8443/ollama/api/chat' }.each do |host, endpoint|
+      with_cli_environment do |env, directory|
+        env['OLLAMA_HOST'] = host
+        request = local_request(endpoint)
+        assert_equal 0, invoke(env, directory).first
+        assert_requested request
       end
     end
   end
-  
-  # Mock method to avoid actual git commands
-  def test_parse_options
-    # Test with -a option
-    cli1 = Jeeves::CLI.new
-    ARGV.replace(['-a'])
-    cli1.parse_options
-    assert_equal true, cli1.instance_variable_get(:@options)[:all]
-    assert_equal false, cli1.instance_variable_get(:@options)[:push]
-    assert_equal false, cli1.instance_variable_get(:@options)[:dry_run]
-    
-    # Test with -p option
-    cli2 = Jeeves::CLI.new
-    ARGV.replace(['-p'])
-    cli2.parse_options
-    assert_equal false, cli2.instance_variable_get(:@options)[:all]
-    assert_equal true, cli2.instance_variable_get(:@options)[:push]
-    assert_equal false, cli2.instance_variable_get(:@options)[:dry_run]
-    
-    # Test with -d/--dry-run option
-    cli3 = Jeeves::CLI.new
-    ARGV.replace(['-d'])
-    cli3.parse_options
-    assert_equal false, cli3.instance_variable_get(:@options)[:all]
-    assert_equal false, cli3.instance_variable_get(:@options)[:push]
-    assert_equal true, cli3.instance_variable_get(:@options)[:dry_run]
-    
-    # Test with --dry-run long form
-    cli4 = Jeeves::CLI.new
-    ARGV.replace(['--dry-run'])
-    cli4.parse_options
-    assert_equal true, cli4.instance_variable_get(:@options)[:dry_run]
-    
-    # Test with all options
-    cli5 = Jeeves::CLI.new
-    ARGV.replace(['-a', '-p', '-d'])
-    cli5.parse_options
-    assert_equal true, cli5.instance_variable_get(:@options)[:all]
-    assert_equal true, cli5.instance_variable_get(:@options)[:push]
-    assert_equal true, cli5.instance_variable_get(:@options)[:dry_run]
-    
-    # Reset ARGV
-    ARGV.replace([])
+
+  def test_local_failures_do_not_fall_back_to_cloud
+    responses = [
+      { status: 404, body: '{"error":"model not found"}' },
+      { status: 500, body: '{"error":"out of memory"}' },
+      { body: 'not JSON' }, { body: 'null' }, { body: '{}' },
+      { body: '{"error":"load failed"}' }, { body: '{"message":null}' },
+      { body: '{"message":{"thinking":"reasoning only"}}' },
+      { body: '{"message":{"content":null}}' }, { body: '{"message":{"content":"  "}}' },
+      { body: '{"message":{"content":["invalid"]}}' },
+      { body: '{"message":{"content":"fix: partial"},"done_reason":"length"}' }
+    ]
+    responses.each do |response|
+      with_cli_environment do |env, directory|
+        stub_request(:post, LOCAL).to_return(**response)
+        code, output, errors = invoke(env, directory)
+        assert_equal 1, code, response.inspect
+        assert_empty output
+        assert_includes errors, 'Error:'
+        assert_includes errors, 'ollama pull local-model' if response[:status] == 404
+      end
+    end
+    assert_not_requested(:post, CLOUD)
   end
-  
-  def test_bundled_prompt_path_calculation
-    # This test ensures we don't have path calculation issues with '..' when finding the bundled prompt
-    
-    # Get the private method's source code using Ruby reflection
-    setup_config_method = Jeeves::CLI.instance_method(:setup_config_dir)
-    method_source = setup_config_method.source_location
-    
-    # Verify that we're able to find the method source
-    assert method_source, "Could not locate setup_config_dir method source"
-    
-    # Capture the actual implemented logic for finding the bundled prompt
-    config_prompt_path = nil
-    
-    # Override File.join to capture its arguments when called for the bundled prompt
-    original_file_join = File.method(:join)
-    path_capture = ->(path, *args) do
-      # When we see a path concatenation that includes 'config/prompt', capture those args
-      if args.include?('config') && args.include?('prompt')
-        config_prompt_path = [path, *args]
+
+  def test_local_connection_and_timeout_errors_are_actionable
+    [Errno::ECONNREFUSED, Net::ReadTimeout, Net::OpenTimeout, SocketError].each do |error|
+      with_cli_environment do |env, directory|
+        stub_request(:post, LOCAL).to_raise(error)
+        code, output, errors = invoke(env, directory)
+        assert_equal 1, code
+        assert_empty output
+        assert_match(/Ollama|OLLAMA_HOST/, errors)
       end
-      original_file_join.call(path, *args)
     end
-    
-    # Stub File.join temporarily
-    File.singleton_class.class_eval do
-      alias_method :original_join, :join
-      define_method(:join, &path_capture)
+    assert_not_requested(:post, CLOUD)
+  end
+
+  def test_broken_http_and_tls_connections_return_clean_errors
+    [EOFError, Net::HTTPBadResponse, OpenSSL::SSL::SSLError].each do |error|
+      with_cli_environment do |env, directory|
+        stub_request(:post, LOCAL).to_raise(error)
+        code, output, errors = invoke(env, directory)
+        assert_equal 1, code
+        assert_empty output
+        assert_includes errors, 'connection failed'
+      end
     end
-    
-    # Create a temporary CLI instance to trigger the path calculation
-    begin
-      # Create instance with stubbed file operations to avoid side effects
-      FileUtils.stubs(:mkdir_p).returns(true)
-      File.stubs(:exist?).returns(false) # Forces the path calculation code to run
-      File.stubs(:read).returns("test prompt content")
-      FileUtils.stubs(:cp).returns(true)
-      
-      # Catch the exit call in the error case
-      begin
-        Jeeves::CLI.new
-      rescue SystemExit
-        # Expected when File.exist? is stubbed to false
-      end
-      
-      # Now we should have captured the path calculation
-      assert config_prompt_path, "Path calculation was not captured"
-      
-      # Check if we're only going up one directory level (not two)
-      path_components = config_prompt_path.select { |part| part == '..' }
-      assert_equal 1, path_components.size, 
-                   "Path calculation goes too far up: #{config_prompt_path.join('/')}"
-      
-      # Also verify we're constructing the path correctly
-      assert_includes config_prompt_path, 'config'
-      assert_includes config_prompt_path, 'prompt'
-    ensure
-      # Restore original File.join method
-      File.singleton_class.class_eval do
-        remove_method :join
-        alias_method :join, :original_join
-      end
-      
-      # Remove any stubs
-      FileUtils.unstub(:mkdir_p)
-      File.unstub(:exist?)
-      File.unstub(:read)
-      FileUtils.unstub(:cp)
+    assert_not_requested(:post, CLOUD)
+  end
+
+  def test_local_context_budget_rejects_input_instead_of_truncating
+    with_cli_environment do |env, directory|
+      env['GIT_COMMIT_LOCAL_CONTEXT'] = '2048'
+      code, _output, errors = invoke(env, directory, diff: 'x' * 1000)
+      assert_equal 1, code
+      assert_includes errors, 'context budget'
+      assert_not_requested(:post, LOCAL)
     end
   end
-  
-  def test_dry_run_functionality
-    # Set up a CLI instance with dry-run enabled
-    cli = Jeeves::CLI.new
-    ARGV.replace(['-d'])
-    cli.parse_options
-    
-    # Mock the diff to return something
-    cli.stubs(:`).with('git diff --staged').returns('test diff content')
-    
-    # Mock the generate_commit_message method to return a test message
-    test_commit_message = "feat: 🚀 add new feature\n\nThis is a test commit message."
-    cli.stubs(:generate_commit_message).returns(test_commit_message)
-    
-    # Capture stdout to verify the dry-run output
-    require 'stringio'
-    original_stdout = $stdout
-    $stdout = StringIO.new
-    
-    # Run the CLI
-    cli.run
-    
-    # Get the captured output
-    output = $stdout.string
-    
-    # Restore stdout
-    $stdout = original_stdout
-    
-    # Verify the output contains the dry-run message
-    assert_includes output, "Dry-run mode: Commit message would be:"
-    assert_includes output, "============================================"
-    assert_includes output, test_commit_message
-    assert_includes output, "No commit was created (dry-run mode)"
-    
-    # Verify that system commands for commit and push were not called
-    # We need to ensure system method was not called for git commit
-    Object.any_instance.expects(:system).with(regexp_matches(/git commit/)).never
-    Object.any_instance.expects(:system).with('git push').never
-    
-    # Reset ARGV
-    ARGV.replace([])
-  end
-  
-  def test_dry_run_with_no_staged_changes
-    # Test that dry-run still respects the "no changes staged" check
-    cli = Jeeves::CLI.new
-    ARGV.replace(['-d'])
-    cli.parse_options
-    
-    # Mock empty diff
-    cli.stubs(:`).with('git diff --staged').returns('')
-    
-    # Capture stdout to verify the exit behavior
-    require 'stringio'
-    original_stdout = $stdout
-    $stdout = StringIO.new
-    
-    # Expect the CLI to exit with status 1 for no staged changes
-    assert_raises(SystemExit) do
-      cli.run
+
+  def test_cloud_empty_truncated_and_malformed_responses_are_rejected
+    ['null', '{}', '{"choices":[]}', '{"choices":[{"message":{"content":""}}]}',
+     '{"choices":[{"message":{"content":"fix: partial"},"finish_reason":"length"}]}'].each do |body|
+      with_cli_environment do |env, directory|
+        env['GIT_COMMIT_PROVIDER'] = 'openrouter'
+        stub_request(:post, CLOUD).to_return(body: body)
+        code, output, errors = invoke(env, directory)
+        assert_equal 1, code
+        assert_empty output
+        assert_includes errors, 'Error:'
+      end
     end
-    
-    # Get the captured output
-    output = $stdout.string
-    
-    # Restore stdout
-    $stdout = original_stdout
-    
-    # Verify the "no changes staged" message is shown
-    assert_includes output, "No changes staged for commit."
-    
-    # Reset ARGV
-    ARGV.replace([])
+  end
+
+  def test_message_format_validation_and_plain_opt_out
+    with_cli_environment do |env, directory|
+      local_request(content: 'A custom subject')
+      assert_equal 1, invoke(env, directory).first
+      env['GIT_COMMIT_MESSAGE_FORMAT'] = 'plain'
+      assert_equal [0, "A custom subject\n", ''], invoke(env, directory)
+    end
+  end
+
+  def test_emoji_is_normalized_to_type_without_rewriting_body
+    with_cli_environment do |env, directory|
+      local_request(content: "✨ fix(client)!: preserve zero\n\nKeep 0 instead of choosing 3.")
+      assert_equal [0, "🐛 fix(client)!: preserve zero\n\nKeep 0 instead of choosing 3.\n", ''], invoke(env, directory)
+    end
+  end
+
+  def test_conventional_message_separates_subject_and_body
+    with_cli_environment do |env, directory|
+      local_request(content: "fix: preserve zero\nKeep 0 instead of choosing 3.")
+      assert_equal [0, "🐛 fix: preserve zero\n\nKeep 0 instead of choosing 3.\n", ''], invoke(env, directory)
+    end
+  end
+
+  def test_prompt_requires_diff_placeholder
+    with_cli_environment do |env, directory|
+      File.write(File.join(directory, '.config/jeeves/prompt'), 'Missing placeholder')
+      code, _output, errors = invoke(env, directory)
+      assert_equal 1, code
+      assert_includes errors, '{{DIFF}}'
+      assert_not_requested(:post, LOCAL)
+    end
+  end
+
+  def test_invalid_options_and_empty_stdin_return_failure
+    with_cli_environment do |env, directory|
+      [ ['--provider', 'typo'], ['--unknown'], ['extra'] ].each do |args|
+        assert_equal 1, invoke(env, directory, args: args).first
+      end
+      assert_equal 1, invoke(env, directory, diff: '').first
+      assert_equal 1, invoke(env, directory, diff: '  ').first
+      assert_not_requested(:post, LOCAL)
+    end
+  end
+
+  def test_version_and_help_need_no_provider_or_configuration
+    with_cli_environment do |env, directory|
+      env['GIT_COMMIT_PROVIDER'] = 'invalid'
+      assert_equal [0, "#{Jeeves::VERSION}\n", ''], invoke(env, directory, args: ['--version'])
+      code, output, errors = invoke(env, directory, args: ['--help'])
+      assert_equal 0, code
+      assert_includes output, '--provider'
+      assert_empty errors
+    end
+  end
+
+  private
+
+  def local_request(endpoint = LOCAL, content: 'fix: local message')
+    stub_request(:post, endpoint).to_return(body: { message: { content: content } }.to_json)
+  end
+
+  def cloud_request
+    stub_request(:post, CLOUD).to_return(body: { choices: [{ message: { content: 'fix: cloud message' } }] }.to_json)
   end
 end

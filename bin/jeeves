@@ -12,4 +12,4 @@ $LOAD_PATH.unshift(lib_dir) unless $LOAD_PATH.include?(lib_dir)
 require 'jeeves'
 
 # Execute the CLI
-Jeeves::CLI.new.run
+exit Jeeves::CLI.new.run
