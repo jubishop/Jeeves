@@ -68,7 +68,7 @@ class CLITest < Minitest::Test
         end
         
         unless File.exist?(Jeeves::CLI::PROMPT_FILE)
-          test_bundled_prompt = File.join(TEST_ROOT_DIR, 'config', 'prompt')
+          test_bundled_prompt = File.join(File.dirname(Jeeves::CLI::CONFIG_DIR), 'config', 'prompt')
           if File.exist?(test_bundled_prompt)
             FileUtils.cp(test_bundled_prompt, Jeeves::CLI::PROMPT_FILE)
           end
@@ -178,7 +178,7 @@ class CLITest < Minitest::Test
       
       # Catch the exit call in the error case
       begin
-        cli = Jeeves::CLI.new
+        Jeeves::CLI.new
       rescue SystemExit
         # Expected when File.exist? is stubbed to false
       end

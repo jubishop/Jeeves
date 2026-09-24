@@ -8,7 +8,7 @@ When asked to save, recall, or update a memory, read and write those files direc
 
 ## Project Overview
 
-Jeeves is a Ruby gem that generates AI-powered Git commit messages using OpenRouter API. It's a CLI tool that analyzes staged git changes and creates conventional commit messages with gitmoji that "mercilessly roast" the code author.
+Jeeves is a Ruby gem that generates AI-powered Git commit messages using OpenRouter or a local Ollama server. It's a CLI tool that analyzes staged git changes and creates conventional commit messages with gitmoji that "mercilessly roast" the code author.
 
 ## Essential Commands
 
@@ -61,21 +61,26 @@ chmod +x bin/jeeves
 **Single-Class Design**: Unlike typical Ruby gems, Jeeves uses a single `CLI` class in `lib/jeeves.rb` that handles:
 - Command-line option parsing
 - Git operations (staging, diff, commit)
-- OpenRouter API integration
+- OpenRouter and Ollama API integration
 - Prompt file management (global vs repository-specific)
 
 **Prompt System**: Two-tiered configuration:
 1. Repository-specific: `.jeeves_prompt` in git root (highest priority)
 2. Global fallback: `~/.config/jeeves/prompt`
 
-**API Integration**: Uses OpenRouter API with configurable models via environment variables:
-- `OPENROUTER_API_KEY` (required)
-- `GIT_COMMIT_MODEL` (defaults to `x-ai/grok-code-fast-1`)
+**API Integration**: Provider and models are configurable via environment variables:
+- `GIT_COMMIT_PROVIDER`: `openrouter` (default) or `ollama`
+- `OPENROUTER_API_KEY`: required only for OpenRouter
+- `GIT_COMMIT_MODEL`: OpenRouter model, defaults to `x-ai/grok-code-fast-1`
+- `GIT_COMMIT_LOCAL_MODEL`: Ollama model, defaults to `qwen3.8:27b`
+- `OLLAMA_HOST`: local server, defaults to `http://127.0.0.1:11434`
+- `GIT_COMMIT_LOCAL_CONTEXT`: local context tokens, defaults to `32768`
+- `--provider`, `--local`, and `--model` override configuration for one invocation.
 
 ### Testing Framework
 
 Uses Minitest with extensive mocking:
-- **WebMock**: Stubs HTTP requests to OpenRouter API
+- **WebMock**: Stubs HTTP requests to both providers; all network access is disabled in tests
 - **Mocha**: Stubs system calls and git operations
 - **Isolated Testing**: Creates temporary directories to avoid affecting real config files
 - **Test Helper**: `test/test_helper.rb` provides comprehensive test environment setup
@@ -88,8 +93,8 @@ Uses Minitest with extensive mocking:
 - Prompt template is in `config/prompt`
 
 ### Environment Variables Required
-- `OPENROUTER_API_KEY`: Required for API access
-- `GIT_COMMIT_MODEL`: Optional model override (defaults to `x-ai/grok-code-fast-1`)
+- OpenRouter requires `OPENROUTER_API_KEY`. Ollama requires a running server and a downloaded model.
+- Use the provider and model variables documented under API Integration above.
 
 ### Key Constants and Paths
 - `CONFIG_DIR`: `~/.config/jeeves`

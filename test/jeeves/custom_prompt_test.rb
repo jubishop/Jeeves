@@ -40,7 +40,8 @@ class CustomPromptTest < Minitest::Test
     request_body = {
       model: 'test_model',
       messages: [{ role: 'user', content: expected_prompt }],
-      max_tokens: 500
+      max_tokens: 1000,
+      stop: ['END_COMMIT']
     }
 
     stub_request(:post, "https://openrouter.ai/api/v1/chat/completions")
@@ -63,6 +64,7 @@ class CustomPromptTest < Minitest::Test
     # Call method and check result
     result = @cli.send(:generate_commit_message, diff)
     assert_equal expected_message, result
+    assert_requested(:post, 'https://openrouter.ai/api/v1/chat/completions', body: request_body.to_json)
   end
   
   def test_fallbacks_to_global_prompt_when_repo_specific_not_available
@@ -78,7 +80,8 @@ class CustomPromptTest < Minitest::Test
     request_body = {
       model: 'test_model',
       messages: [{ role: 'user', content: expected_prompt }],
-      max_tokens: 500
+      max_tokens: 1000,
+      stop: ['END_COMMIT']
     }
 
     stub_request(:post, "https://openrouter.ai/api/v1/chat/completions")
@@ -101,5 +104,6 @@ class CustomPromptTest < Minitest::Test
     # Call method and check result
     result = @cli.send(:generate_commit_message, diff)
     assert_equal expected_message, result
+    assert_requested(:post, 'https://openrouter.ai/api/v1/chat/completions', body: request_body.to_json)
   end
 end

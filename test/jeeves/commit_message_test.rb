@@ -54,9 +54,10 @@ PROMPT
     
     # Prepare the exact request body we expect
     request_body = {
-      model: 'test-model',
+      model: 'test_model',
       messages: [{ role: 'user', content: expected_prompt }],
-      max_tokens: 500
+      max_tokens: 1000,
+      stop: ['END_COMMIT']
     }
 
     stub_request(:post, "https://openrouter.ai/api/v1/chat/completions")
@@ -79,6 +80,7 @@ PROMPT
     # Call method and check result
     result = @cli.send(:generate_commit_message, diff)
     assert_equal expected_message, result
+    assert_requested(:post, 'https://openrouter.ai/api/v1/chat/completions', body: request_body.to_json)
   end
   
   def test_api_error_handling
@@ -96,5 +98,25 @@ PROMPT
     assert_raises(SystemExit) do
       @cli.send(:generate_commit_message, diff)
     end
+  end
+
+  def test_default_xai_model_omits_unsupported_stop_parameter
+    ENV.delete('GIT_COMMIT_MODEL')
+    request = stub_request(:post, 'https://openrouter.ai/api/v1/chat/completions').with do |req|
+      body = JSON.parse(req.body)
+      body['model'] == 'x-ai/grok-code-fast-1' && !body.key?('stop')
+    end.to_return(body: { choices: [{ message: { content: 'fix: xai message' } }] }.to_json)
+    assert_equal 'fix: xai message', @cli.send(:generate_commit_message, 'test diff', suppress_output: true)
+    assert_requested request
+  end
+
+  def test_reasoning_model_keeps_output_format_instructions
+    ENV['GIT_COMMIT_MODEL'] = 'openai/gpt-5-mini'
+    request = stub_request(:post, 'https://openrouter.ai/api/v1/chat/completions').with do |req|
+      body = JSON.parse(req.body)
+      body['messages'].first['role'] == 'system' && body['stop'] == ['END_COMMIT']
+    end.to_return(body: { choices: [{ message: { content: 'fix: reasoning model message' } }] }.to_json)
+    assert_equal 'fix: reasoning model message', @cli.send(:generate_commit_message, 'test diff', suppress_output: true)
+    assert_requested request
   end
 end

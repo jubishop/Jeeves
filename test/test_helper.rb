@@ -3,6 +3,7 @@ TESTING_MODE = true
 
 # Required for Dir.tmpdir
 require 'tmpdir'
+require 'fileutils'
 
 # Use a completely isolated test environment
 TEST_ROOT_DIR = File.join(Dir.tmpdir, "jeeves_test_root_#{Time.now.to_i}")
@@ -19,11 +20,10 @@ require 'minitest/autorun'
 require 'minitest/pride' # For colorized output
 require 'webmock/minitest' # For mocking HTTP requests
 require 'mocha/minitest' # For stubbing methods
-require 'fileutils'
 require 'tempfile'
 
 # Ensure WebMock is properly configured
-WebMock.disable_net_connect!(allow_localhost: true)
+WebMock.disable_net_connect!
 
 # Set up stub for API responses
 def stub_openrouter_api
@@ -47,8 +47,9 @@ end
 
 # Helper methods for test isolation
 def create_isolated_project_structure
+  test_root = Dir.mktmpdir('case_', TEST_ROOT_DIR)
   # Create isolated test directories that mirror the real project structure
-  test_config_dir = File.join(TEST_ROOT_DIR, 'config')
+  test_config_dir = File.join(test_root, 'config')
   FileUtils.mkdir_p(test_config_dir)
   
   # Create a test prompt file with proper content
@@ -56,7 +57,7 @@ def create_isolated_project_structure
   File.write(File.join(test_config_dir, 'prompt'), test_prompt_content)
   
   # Return the test root directory path
-  TEST_ROOT_DIR
+  test_root
 end
 
 # Store the real Jeeves CONFIG_DIR constant to avoid affecting real files
@@ -65,14 +66,21 @@ REAL_CONFIG_DIR = Jeeves::CLI::CONFIG_DIR
 # Helper to create a clean test environment
 class Minitest::Test
   def setup_test_environment
+    WebMock.reset!
     # Create an isolated test environment
     @test_root_dir = create_isolated_project_structure
     
     # Store original ENV values and constants
     @original_env = {}
-    ['OPENROUTER_API_KEY', 'GIT_COMMIT_MODEL'].each do |key|
+    %w[OPENROUTER_API_KEY GIT_COMMIT_MODEL GIT_COMMIT_PROVIDER GIT_COMMIT_LOCAL_MODEL
+       GIT_COMMIT_LOCAL_CONTEXT OLLAMA_HOST].each do |key|
       @original_env[key] = ENV[key]
+      ENV.delete(key)
     end
+    @original_argv = ARGV.dup
+    ARGV.clear
+    STDIN.stubs(:tty?).returns(true)
+    STDIN.stubs(:closed?).returns(false)
     
     # Save the original CONFIG_DIR value
     @original_config_dir = REAL_CONFIG_DIR
@@ -118,8 +126,10 @@ class Minitest::Test
     @original_env.each do |key, value|
       ENV[key] = value
     end
+    ARGV.replace(@original_argv)
     
     # Clean up test directories for this test
     FileUtils.rm_rf(@test_config_dir) if defined?(@test_config_dir) && @test_config_dir && Dir.exist?(@test_config_dir)
+    FileUtils.rm_rf(@test_root_dir) if @test_root_dir
   end
 end

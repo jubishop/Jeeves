@@ -13,7 +13,8 @@ Jeeves is a command-line tool that creates AI-powered Git commit messages that s
 - Option to push changes after committing.
 - Automatically detects piped input and outputs just the commit message for easy scripting.
 - Customizable AI prompts for tailored commit message generation.
-- Choose any AI model (chat-gpt 5-mini by default).
+- Use cloud models through OpenRouter or local models through Ollama.
+- Configure the provider and models once, with optional command-line overrides.
 
 ## Example Commit message
 
@@ -103,9 +104,80 @@ ln -s "$(pwd)/bin/jeeves" /usr/local/bin/jeeves
 
 ## Configuration
 
-### API Key Setup
+### Provider and Model Settings
 
-Jeeves requires an OpenRouter API key to generate commit messages. You need to set this as an environment variable:
+Jeeves uses OpenRouter unless `GIT_COMMIT_PROVIDER` is set to `ollama`.
+Set these environment variables in your shell configuration to make your choice
+persistent. Jeeves does not read `.env` files itself; your shell must load them.
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `GIT_COMMIT_PROVIDER` | `openrouter` or `ollama` | `openrouter` |
+| `GIT_COMMIT_MODEL` | OpenRouter model | `x-ai/grok-code-fast-1` |
+| `GIT_COMMIT_LOCAL_MODEL` | Ollama model | `qwen3.8:27b` |
+| `OLLAMA_HOST` | Ollama server address | `http://127.0.0.1:11434` |
+| `GIT_COMMIT_LOCAL_CONTEXT` | Local context window in tokens | `32768` |
+
+The cloud and local model settings are separate. Changing providers preserves
+your model choice for each provider. `--provider` and `--model` override the
+settings for one command. `--local` is shorthand for `--provider ollama`.
+
+### Local Setup with Ollama
+
+Install [Ollama](https://ollama.com/download), start its server, and download a
+model. For example, on an Apple Silicon Mac with 64 GB of memory:
+
+```sh
+brew install ollama
+brew services start ollama
+ollama pull gemma4:26b-nvfp4
+```
+
+This package uses Apple's MLX framework and requires Apple Silicon. Gemma 4
+26B-A4B uses about 4B parameters per generated token, which helps generation
+speed despite its larger total size. `gemma4:12b-mlx` is an alternative with a
+smaller download. For other supported hardware, choose a compatible package
+from [available models](https://ollama.com/library). Model files, the context
+window, and other applications must all fit in memory.
+
+To make local generation the default in fish:
+
+```fish
+set -Ux GIT_COMMIT_PROVIDER ollama
+set -Ux GIT_COMMIT_LOCAL_MODEL gemma4:26b-nvfp4
+```
+
+For bash or zsh, add these lines to your shell startup file:
+
+```sh
+export GIT_COMMIT_PROVIDER=ollama
+export GIT_COMMIT_LOCAL_MODEL=gemma4:26b-nvfp4
+```
+
+Then use Jeeves normally. No API key is needed for Ollama:
+
+```sh
+jeeves
+jeeves --dry-run
+git diff | jeeves
+
+# Use your saved OpenRouter model for one command
+jeeves --provider openrouter
+```
+
+Local generation disables thinking output and allows up to five minutes for
+model loading and generation. The first request can take longer while the model
+loads. Increase `GIT_COMMIT_LOCAL_CONTEXT` for larger diffs, within your model's
+context and memory limits. Jeeves rejects empty or output-limit-truncated
+responses. An Ollama failure does not fall back to OpenRouter.
+
+Ollama listens on localhost by default. For local-only operation, disable its
+cloud features using `{"disable_ollama_cloud": true}` in `~/.ollama/server.json`
+and restart Ollama. See the [Ollama FAQ](https://docs.ollama.com/faq).
+
+### OpenRouter API Key Setup
+
+The OpenRouter provider requires an API key. Set it as an environment variable:
 
 ```bash
 export OPENROUTER_API_KEY="your_openrouter_api_key"
@@ -153,6 +225,9 @@ Options:
 - `-a, --all`: Stage all changes before committing
 - `-p, --push`: Push changes after committing
 - `-d, --dry-run`: Generate commit message without committing
+- `--provider PROVIDER`: Use `openrouter` or `ollama` for this command
+- `--local`: Use Ollama for this command
+- `--model MODEL`: Override the selected provider's model for this command
 - `--version`: Show version information
 - `-h, --help`: Show help message
 

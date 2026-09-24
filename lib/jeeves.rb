@@ -35,14 +35,26 @@ module Jeeves
           @options[:push] = true
         end
 
-      opts.on('-d', '--dry-run', 'Generate commit message without committing') do
-        @options[:dry_run] = true
-      end
+        opts.on('-d', '--dry-run', 'Generate commit message without committing') do
+          @options[:dry_run] = true
+        end
 
-      opts.on('-h', '--help', 'Show this help message') do
-        puts opts
-        exit
-      end
+        opts.on('--provider PROVIDER', %w[openrouter ollama], 'Use openrouter or ollama') do |provider|
+          @options[:provider] = provider
+        end
+
+        opts.on('--local', 'Use Ollama for this invocation') do
+          @options[:provider] = 'ollama'
+        end
+
+        opts.on('--model MODEL', 'Override the configured model for this invocation') do |model|
+          @options[:model] = model
+        end
+
+        opts.on('-h', '--help', 'Show this help message') do
+          puts opts
+          exit
+        end
       end.parse!
     end
 
@@ -137,9 +149,9 @@ module Jeeves
         config_prompt = File.join(File.dirname(__FILE__), '..', 'config', 'prompt')
         
         if File.exist?(config_prompt)
-          puts "Copying bundled prompt file to #{PROMPT_FILE}"
+          warn "Copying bundled prompt file to #{PROMPT_FILE}"
           FileUtils.cp(config_prompt, PROMPT_FILE)
-          puts "Prompt file installed successfully."
+          warn 'Prompt file installed successfully.'
         else
           puts "Error: Prompt file not found at #{PROMPT_FILE}"
           puts "No bundled prompt file found at: #{config_prompt}"
@@ -150,103 +162,135 @@ module Jeeves
     end
 
     def generate_commit_message(diff, suppress_output: false)
-      api_key = ENV['OPENROUTER_API_KEY']
-      if api_key.nil? || api_key.empty?
-        puts "Error: OPENROUTER_API_KEY environment variable not set"
-        exit 1
+      provider = @options[:provider] || ENV.fetch('GIT_COMMIT_PROVIDER', 'openrouter')
+      unless %w[openrouter ollama].include?(provider)
+        raise ArgumentError, 'GIT_COMMIT_PROVIDER must be openrouter or ollama'
       end
 
-      model = ENV['GIT_COMMIT_MODEL'] || 'x-ai/grok-code-fast-1'
+      model = @options[:model] || configured_model(provider)
+      raise ArgumentError, 'The configured model must not be empty' if model.strip.empty?
+
+      puts "Using provider: #{provider}" unless suppress_output
       puts "Using model: #{model}" unless suppress_output
-      
       prompt_file_path = get_prompt_file_path
       puts "Using prompt file: #{prompt_file_path}" unless suppress_output
       prompt = File.read(prompt_file_path).gsub('{{DIFF}}', diff)
-      
-      uri = URI.parse('https://openrouter.ai/api/v1/chat/completions')
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
 
-      # Use system certificate store for SSL verification
-      store = OpenSSL::X509::Store.new
-      store.set_default_paths
-      http.cert_store = store
-      
-      request = Net::HTTP::Post.new(uri.request_uri)
-      request['Content-Type'] = 'application/json'
-      request['Authorization'] = "Bearer #{api_key}"
-      request['HTTP-Referer'] = 'https://github.com/jeeves-git-commit'
-      
-      # For reasoning models, use system message to enforce output format
-      messages = if model.include?('gpt-5') || model.include?('o1')
-        [
-          { role: 'system', content: 'You are a git commit message generator. Respond ONLY with the final commit message. Do not show your thinking or reasoning process.' },
-          { role: 'user', content: prompt }
-        ]
+      message = if provider == 'ollama'
+                  generate_with_ollama(model, prompt)
+                else
+                  generate_with_openrouter(model, prompt)
+                end
+      unless message.is_a?(String) && !message.strip.empty?
+        raise ArgumentError, "#{provider} returned an empty or invalid commit message for #{model}"
+      end
+
+      message = message.strip
+      unless suppress_output
+        puts 'Generated commit message:'
+        puts '------------------------'
+        puts message
+        puts '------------------------'
+      end
+      message
+    rescue StandardError => e
+      warn "Error: #{e.message}"
+      exit 1
+    end
+
+    def configured_model(provider)
+      if provider == 'ollama'
+        ENV.fetch('GIT_COMMIT_LOCAL_MODEL', 'qwen3.8:27b')
       else
-        [
-          { role: 'user', content: prompt }
-        ]
+        ENV.fetch('GIT_COMMIT_MODEL', 'x-ai/grok-code-fast-1')
       end
-      
-      request_body = {
-        model: model,
-        messages: messages,
-        max_tokens: 1000
+    end
+
+    def generate_with_openrouter(model, prompt)
+      api_key = ENV['OPENROUTER_API_KEY']
+      if api_key.nil? || api_key.empty?
+        raise ArgumentError, 'OPENROUTER_API_KEY environment variable not set'
+      end
+
+      messages = [{ role: 'user', content: prompt }]
+      if model.include?('gpt-5') || model.include?('o1')
+        messages.unshift(
+          role: 'system',
+          content: 'You are a git commit message generator. Respond ONLY with the final commit message. ' \
+                   'Do not show your thinking or reasoning process.'
+        )
+      end
+      body = { model: model, messages: messages, max_tokens: 1000 }
+      body[:stop] = ['END_COMMIT'] unless model.include?('x-ai/')
+      headers = {
+        'Authorization' => "Bearer #{api_key}",
+        'HTTP-Referer' => 'https://github.com/jeeves-git-commit'
       }
-      
-      # Only add stop parameter for models that support it
-      # xAI models don't support the stop parameter
-      unless model.include?('x-ai/')
-        request_body[:stop] = ["END_COMMIT"]
+      result = request_completion(URI('https://openrouter.ai/api/v1/chat/completions'), body, headers)
+      choice = result.fetch('choices').first
+      if choice['finish_reason'] == 'length'
+        raise ArgumentError, 'OpenRouter reached its output limit; no commit message was accepted'
       end
-      
-      # Remove any reasoning parameters that cause API errors
-      # GPT-5 mini will put reasoning in the reasoning field regardless
-      
-      request.body = request_body.to_json
-      
-      begin
-        response = http.request(request)
-        
-        if response.code == '200'
-          result = JSON.parse(response.body)
-          
-          # Better error handling for API response structure
-          if result['choices'] && result['choices'][0] && result['choices'][0]['message']
-            message = result['choices'][0]['message']
-            commit_message = message['content']
-            
-            if commit_message && !commit_message.strip.empty?
-              commit_message = commit_message.strip
-              # Only show the formatted message in normal mode
-              unless suppress_output
-                puts "Generated commit message:"
-                puts "------------------------"
-                puts commit_message
-                puts "------------------------"
-              end
-              return commit_message
-            else
-              puts "Error: API returned empty commit message"
-              puts "This model (#{model}) may not be compatible with direct output."
-              puts "Try using a different model with: export GIT_COMMIT_MODEL=\"x-ai/grok-code-fast-1\""
-              exit 1
-            end
-          else
-            puts "Error: Unexpected API response structure"
-            puts "Full API response: #{response.body}"
-            exit 1
-          end
-        else
-          puts "API Error (#{response.code}): #{response.body}"
-          exit 1
-        end
-      rescue => e
-        puts "Error: #{e.message}"
-        exit 1
+
+      choice.fetch('message').fetch('content')
+    end
+
+    def generate_with_ollama(model, prompt)
+      host = ENV.fetch('OLLAMA_HOST', 'http://127.0.0.1:11434')
+      host = "http://#{host}" unless host.include?('://')
+      uri = URI.parse(host)
+      unless %w[http https].include?(uri.scheme) && uri.host && !uri.userinfo && !uri.query && !uri.fragment
+        raise ArgumentError, 'OLLAMA_HOST must be an HTTP or HTTPS server URL'
       end
+
+      uri.path = "#{uri.path.sub(%r{/+\z}, '')}/api/chat"
+      context = Integer(ENV.fetch('GIT_COMMIT_LOCAL_CONTEXT', '32768'), 10)
+      raise ArgumentError, 'GIT_COMMIT_LOCAL_CONTEXT must be a positive integer' unless context.positive?
+
+      body = {
+        model: model,
+        messages: [{ role: 'user', content: prompt }],
+        stream: false,
+        think: false,
+        options: { num_predict: 1000, num_ctx: context, stop: ['END_COMMIT'] }
+      }
+      result = request_completion(uri, body, {}, local: true)
+      if result['done_reason'] == 'length'
+        raise ArgumentError, 'Ollama reached its output limit; no commit message was accepted'
+      end
+
+      result.fetch('message').fetch('content')
+    rescue Errno::ECONNREFUSED, SocketError
+      raise IOError, 'Cannot connect to Ollama. Start it with ollama serve and check OLLAMA_HOST.'
+    rescue Net::OpenTimeout, Net::ReadTimeout
+      raise IOError, 'Ollama timed out. Check the server or try a smaller model or diff.'
+    end
+
+    def request_completion(uri, body, headers, local: false)
+      http = Net::HTTP.new(uri.host, uri.port, local ? nil : :ENV)
+      http.open_timeout = 5
+      http.read_timeout = local ? 300 : 60
+      http.use_ssl = uri.scheme == 'https'
+      if http.use_ssl?
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        store = OpenSSL::X509::Store.new
+        store.set_default_paths
+        http.cert_store = store
+      end
+
+      request = Net::HTTP::Post.new(uri.request_uri, headers)
+      request['Content-Type'] = 'application/json'
+      request.body = body.to_json
+      response = http.request(request)
+      unless response.code == '200'
+        hint = local && response.code == '404' ? " Download the model with: ollama pull #{body[:model]}" : ''
+        raise IOError, "API Error (#{response.code}): #{response.body}#{hint}"
+      end
+      result = JSON.parse(response.body)
+      raise ArgumentError, 'Unexpected API response structure' unless result.is_a?(Hash)
+      raise IOError, "API Error: #{result['error']}" if result['error']
+
+      result
     end
   end
 end
