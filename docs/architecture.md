@@ -14,14 +14,22 @@ and provider HTTP clients have separate responsibilities.
 | `bin/jeeves` | Load the library and return the CLI exit status |
 | `lib/jeeves.rb` | Parse options and coordinate the workflow |
 | `lib/jeeves/settings.rb` | Resolve and validate environment settings |
+| `lib/jeeves/diff.rb` | Shorten oversized diffs into marked excerpts within a byte budget |
 | `lib/jeeves/git_repository.rb` | Run Git, preview changes, commit, and push |
-| `lib/jeeves/prompt.rb` | Select, install, and render prompts |
+| `lib/jeeves/prompt.rb` | Select prompts, budget diff space, report shortening, and render input |
 | `lib/jeeves/message.rb` | Validate output and normalize gitmoji |
 | `lib/jeeves/providers.rb` | OpenRouter and Ollama HTTP requests |
 | `lib/jeeves/runtime.rb` | Enforce supported Ruby versions |
 
 The provider clients use Ruby's HTTP and TLS libraries. There is no agent
 framework or model SDK dependency. Model calls do not execute tools.
+
+Input is read in full and validated as UTF-8. Prompt preparation fits the diff
+to the byte limit and, for Ollama, the space left after instructions and output
+reserves. Shortening removes unchanged context first, then shares excerpt space
+across files and hunks. The model receives an omission notice and the user sees
+a warning on stderr. This changes only model input, not the staged tree or the
+commit. See [large diff handling](configuration.md#output-checks-and-large-diffs).
 
 ## Modes
 

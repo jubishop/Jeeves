@@ -16,8 +16,8 @@ settings; Jeeves does not load `.env` files itself.
 | `GIT_COMMIT_LOCAL_MODEL` | Installed Ollama model tag | `gemma4:26b` |
 | `OPENROUTER_API_KEY` | Required for OpenRouter only | None |
 | `OLLAMA_HOST` | Ollama HTTP or HTTPS endpoint | `http://127.0.0.1:11434` |
-| `GIT_COMMIT_LOCAL_CONTEXT` | Local context window in tokens | `32768` |
-| `GIT_COMMIT_MAX_DIFF_BYTES` | Maximum diff size before generation | `65536` |
+| `GIT_COMMIT_LOCAL_CONTEXT` | Local context window in tokens | `65536` |
+| `GIT_COMMIT_MAX_DIFF_BYTES` | Maximum diff bytes sent to the model, including omission notices | `65536` |
 | `GIT_COMMIT_MESSAGE_FORMAT` | `conventional` or `plain` | `conventional` |
 
 `--provider` and `--model` override saved settings for one command. `--local`
@@ -109,12 +109,33 @@ For a custom prompt that intentionally produces another subject format, set
 `GIT_COMMIT_MESSAGE_FORMAT=plain`. Empty output, reasoning, and control
 characters are still rejected.
 
-The diff byte limit applies before a request. Local generation additionally
-uses a conservative input budget: one byte per token, reserving 1,000 output
-tokens and 256 tokens for chat framing. This can reject text that a tokenizer
-would fit, but avoids depending on a tokenizer for every model. Split large
-changes or deliberately increase the context and byte limit. Jeeves does not
-silently summarize or truncate diffs to fit.
+Jeeves automatically shortens oversized diffs for either provider. It first
+removes unchanged context lines. If more reduction is needed, it shares space
+across files and hunks, keeping file metadata and hunk headers where they fit.
+Small changes can remain complete while large hunks keep excerpts from their
+start and end. When even the headers do not fit, it keeps excerpts from the
+start and end of the diff. Very long lines can be cut within a line, but UTF-8
+characters remain intact.
+
+Every shortened input includes a notice for the model that content is missing
+and hunk ranges refer to the original diff. A warning on stderr reports the
+original and shortened byte counts. Stdout still contains only the generated
+message in piped and dry-run modes. Shortening uses no extra model calls.
+Omitted content can cause the message to miss changes. Use `--dry-run` to
+review it, split the changes, or increase the limits to include more detail.
+
+For Ollama, the default context is 65,536 tokens. Jeeves retains the conservative
+estimate of one byte per token and reserves 1,000 output tokens and 256 tokens
+for chat framing. It subtracts the selected prompt's size, including repeated
+`{{DIFF}}` placeholders, before fitting the diff. The smaller of this available
+space and `GIT_COMMIT_MAX_DIFF_BYTES` controls shortening. A prompt or limit
+that leaves too little room for useful excerpts and notices still returns an
+actionable error. Increasing the context can use more model memory.
+
+Jeeves reads the complete diff before shortening, including piped input, so
+later files can receive space. The byte setting limits model input, not process
+memory. Only the text sent to the model is shortened: staged content, committed
+files, and Git's checks for concurrent changes are preserved.
 
 Local generation requests thinking off. Models that ignore this request and
 return reasoning are rejected. Network connection timeout is five seconds;

@@ -4,6 +4,17 @@ status: current
 
 # Release notes
 
+## 3.1.0
+
+- Increase the default local context to 65,536 tokens.
+- Automatically shorten oversized diffs for Ollama and OpenRouter. Remove
+  unchanged context first, then share excerpt space across files and hunks.
+  Warn on stderr and mark omissions in the model input. Git still commits
+  complete staged files.
+- Account for prompt instructions and repeated diff placeholders when fitting
+  local input. Read complete piped input so later changes can be represented.
+  The diff byte limit now controls model input, not how much stdin is read.
+
 ## 3.0.0
 
 Jeeves supports local Ollama models alongside OpenRouter. Save the provider

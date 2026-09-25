@@ -80,9 +80,7 @@ module Jeeves
       end
 
       def generate(prompt)
-        # One byte per token is a conservative bound without a model-specific tokenizer.
-        budget = @settings.context - 1000 - 256
-        if prompt.bytesize > budget
+        if prompt.bytesize > @settings.prompt_budget
           raise Error, 'Prompt exceeds the conservative local context budget. Split the changes or increase GIT_COMMIT_LOCAL_CONTEXT.'
         end
         body = {

@@ -125,12 +125,32 @@ class WorkflowTest < Minitest::Test
     assert_equal @original_head, git('rev-parse', 'HEAD').strip
   end
 
-  def test_oversized_diff_is_rejected_before_network_request
-    @env['GIT_COMMIT_MAX_DIFF_BYTES'] = '100'
-    _out, err, status = run_cli(stdin: 'x' * 101)
-    refute status.success?
-    assert_match(/large|limit|bytes/i, err)
-    assert_empty @requests
+  def test_oversized_all_dry_run_shortens_the_prompt_without_changing_git
+    @env['GIT_COMMIT_MAX_DIFF_BYTES'] = '1000'
+    File.write(File.join(@repo, 'file.txt'), "new\n" * 20_000)
+    File.write(File.join(@repo, 'z-last.txt'), "last change\n")
+    index = File.binread(File.join(@repo, '.git/index'))
+    out, err, status = run_cli('--all', '--dry-run')
+    assert status.success?, err
+    assert_match(/Warning: diff shortened/, err)
+    assert out.start_with?('🐛 fix:')
+    assert_equal index, File.binread(File.join(@repo, '.git/index'))
+    assert_equal @original_head, git('rev-parse', 'HEAD').strip
+    prompt = @requests.first.dig('messages', 0, 'content')
+    assert_includes prompt, 'diff --git a/file.txt b/file.txt'
+    assert_includes prompt, '+last change'
+    assert_includes prompt, 'omitted'
+    assert_equal 1, @requests.length
+  end
+
+  def test_shortening_does_not_shorten_the_committed_files
+    @env['GIT_COMMIT_MAX_DIFF_BYTES'] = '1000'
+    content = "new\n" * 20_000
+    File.write(File.join(@repo, 'file.txt'), content)
+    _out, err, status = run_cli('--all')
+    assert status.success?, err
+    assert_match(/Warning: diff shortened/, err)
+    assert_equal content, git('show', 'HEAD:file.txt')
   end
 
   def test_reasoning_and_malformed_output_are_not_committed

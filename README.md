@@ -95,6 +95,11 @@ Git and generation failures stop the command with a nonzero exit status.
 Jeeves checks that staged changes and HEAD still match what it reviewed before
 committing. See [architecture and Git behavior](docs/architecture.md).
 
+Local generation defaults to a 65,536-token context. Oversized diffs are
+automatically shortened, with a warning and omission notices for the model.
+Only the model input is shortened; Git commits the complete staged changes.
+See [input limits](docs/configuration.md#output-checks-and-large-diffs).
+
 ## Develop
 
 ```sh

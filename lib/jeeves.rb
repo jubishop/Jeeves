@@ -10,6 +10,7 @@ module Jeeves
 end
 
 require 'jeeves/settings'
+require 'jeeves/diff'
 require 'jeeves/prompt'
 require 'jeeves/message'
 require 'jeeves/providers'
@@ -38,7 +39,7 @@ module Jeeves
       provider = settings.provider == 'ollama' ? Providers::Ollama.new(settings) : Providers::OpenRouter.new(settings)
       piped = !@input.tty? && !@input.closed?
       if piped
-        diff = (@input.read(settings.max_diff_bytes + 1) || +'').force_encoding(Encoding::UTF_8)
+        diff = (@input.read || +'').force_encoding(Encoding::UTF_8)
       else
         raise Error, 'Not inside a Git working tree.' unless @git.root
 
@@ -47,7 +48,8 @@ module Jeeves
         diff = options[:all] && options[:dry_run] ? @git.preview_all : @git.diff
       end
       settings.check_diff!(diff)
-      prompt = Prompt.new(home: @env.fetch('HOME') { Dir.home }, repository: @git.root, errors: @errors).render(diff)
+      prompt = Prompt.new(home: @env.fetch('HOME') { Dir.home }, repository: @git.root, errors: @errors)
+                     .render(diff, settings: settings)
       @errors.puts "Using #{settings.provider}: #{settings.model}" unless piped
       message = Message.prepare(provider.generate(prompt), format: settings.message_format)
       return show(message) if piped || options[:dry_run]

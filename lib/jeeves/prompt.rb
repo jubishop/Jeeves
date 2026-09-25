@@ -10,7 +10,7 @@ module Jeeves
       @errors = errors
     end
 
-    def render(diff)
+    def render(diff, settings:)
       path = @repository && File.join(@repository, '.jeeves_prompt')
       unless path && File.file?(path)
         path = @global_path
@@ -19,7 +19,21 @@ module Jeeves
       template = File.read(path, encoding: 'UTF-8')
       raise Error, "Prompt must contain {{DIFF}}: #{path}" unless template.include?('{{DIFF}}')
 
-      template.gsub('{{DIFF}}') { diff }
+      limit = settings.max_diff_bytes
+      if settings.prompt_budget
+        overhead = template.gsub('{{DIFF}}', '').bytesize
+        available = (settings.prompt_budget - overhead) / template.scan('{{DIFF}}').length
+        if available < 1
+          raise Error, 'The prompt leaves no room for a diff. Shorten the prompt or increase GIT_COMMIT_LOCAL_CONTEXT.'
+        end
+        limit = [limit, available].min
+      end
+      shortened = Diff.new(diff).fit(limit)
+      if shortened != diff
+        @errors.puts "Warning: diff shortened from #{diff.bytesize} to #{shortened.bytesize} bytes. " \
+                     'Some content is omitted; the commit message may miss changes.'
+      end
+      template.gsub('{{DIFF}}') { shortened }
     end
 
     private

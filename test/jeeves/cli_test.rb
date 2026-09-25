@@ -169,13 +169,16 @@ class CLITest < Minitest::Test
     assert_not_requested(:post, CLOUD)
   end
 
-  def test_local_context_budget_rejects_input_instead_of_truncating
+  def test_local_context_budget_shortens_input_with_a_warning
     with_cli_environment do |env, directory|
       env['GIT_COMMIT_LOCAL_CONTEXT'] = '2048'
+      request = local_request.with do |http|
+        JSON.parse(http.body).dig('messages', 0, 'content').bytesize <= 2048 - 1256
+      end
       code, _output, errors = invoke(env, directory, diff: 'x' * 1000)
-      assert_equal 1, code
-      assert_includes errors, 'context budget'
-      assert_not_requested(:post, LOCAL)
+      assert_equal 0, code, errors
+      assert_includes errors, 'Warning: diff shortened'
+      assert_requested request
     end
   end
 
