@@ -2,6 +2,12 @@
 
 Keep designs, decisions, and research in [docs](docs/README.md).
 
+Use `td` for local tasks, progress, blockers, and handoffs. In each new agent
+context, run `td usage --new-session -q` once; use `td usage` for full workflow
+guidance. Follow the [task workflow](docs/task-tracking.md), including first-time
+setup. Keep GitHub Issues for shared scope and acceptance criteria; link related
+issues from td.
+
 Before non-trivial work or writing memory, search the relevant knowledge.
 Use `bin/knowledge search "term"` for known terms and
 `bin/knowledge query "question" --no-rerank` for broader questions.
@@ -65,6 +71,9 @@ customize their own global or repository prompt.
 - Run `bundle exec rake lint` for Ruby lint checks.
 - Run `bundle exec rake build` to build the gem into `gems/`.
 - Do not publish a gem or push changes unless requested.
+- Nonfunctional changes, including docs, task tracking, and comments, may be
+  committed and pushed without a version bump or gem release. Run the checks
+  appropriate to the change; an explicit release request still applies.
 - Keep errors and progress on stderr; piped input and dry-run print only the message.
 - Git failures must stop the operation, and dry-run must not alter the real index.
 - Test actual Git workflows in temporary repositories and fake HTTP only at the network boundary.

@@ -1,8 +1,9 @@
 # Memory
 
 Store durable guidance and non-derivable context here. Use
-[docs](../docs/README.md) for intentional designs and research, and the
-project's task tracker for TODOs and implementation progress.
+[docs](../docs/README.md) for intentional designs and research. Use
+[td](../docs/task-tracking.md) for local tasks and progress, and GitHub Issues
+for shared work.
 
 Search before writing. Update a related page instead of duplicating it.
 Do not record session logs, recent Git history, or facts the current source

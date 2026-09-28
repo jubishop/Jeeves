@@ -2,7 +2,8 @@
 
 Store designs, decisions, research, and reference guides here. Use
 [memory](../memory/README.md) for durable guidance and non-derivable context.
-Use the project's task tracker for implementation progress.
+Use [td](task-tracking.md) for local progress and handoffs, and GitHub Issues
+for shared scope and acceptance criteria.
 
 ## Page format
 
@@ -58,6 +59,7 @@ searched. Do not exempt hand-written pages merely to bypass failed checks.
 
 ## Active pages
 
+- [Local task tracking](task-tracking.md): td setup, progress, handoffs, review, and local data.
 - [Development workflow](development-workflow.md): setup, search, hooks,
   worktrees, diagnostics, dependency choices, testing, and checks.
 
