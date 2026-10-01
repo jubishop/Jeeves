@@ -2,11 +2,16 @@
 
 Keep designs, decisions, and research in [docs](docs/README.md).
 
-Use `td` for local tasks, progress, blockers, and handoffs. In each new agent
-context, run `td usage --new-session -q` once; use `td usage` for full workflow
-guidance. Follow the [task workflow](docs/task-tracking.md), including first-time
-setup. Keep GitHub Issues for shared scope and acceptance criteria; link related
-issues from td.
+Use `td` for work with multiple stages, interruptions, blockers, or agent
+handoffs. Tasks are optional for straightforward work completed in one session;
+read-only questions and small edits need no artificial task records. In each
+new agent context, run `td usage --new-session -q` once. Before substantive
+work, inspect and reuse relevant tasks. Record meaningful checkpoints and keep
+the current handoff accurate. Reuse required checks and actual review; task
+statuses do not add a separate review gate. Follow the
+[task workflow](docs/task-tracking.md) for setup and commands. Keep
+GitHub Issues for shared scope and acceptance criteria; link related issues
+from td.
 
 Before non-trivial work or writing memory, search the relevant knowledge.
 Use `bin/knowledge search "term"` for known terms and
