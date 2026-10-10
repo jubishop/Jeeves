@@ -38,6 +38,11 @@ Ruby. See
 [application validation](#jeeves-application-validation) and the
 [version policy](foundation/engineering-policy.md#runtime-and-toolchain-versions).
 
+Declare only the minimum Ruby in `jeeves.gemspec`; do not add an upper bound.
+A launcher with a bound stops at startup once Homebrew's Ruby moves past it,
+and users must wait for a new gem release. Version 3.1.0 had a `< 4.1` bound
+and rejected Ruby 4.1; version 3.1.1 removed it.
+
 ## Deployment
 
 Pushes do not deploy or release. Publishing the gem with
