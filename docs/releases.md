@@ -4,6 +4,11 @@ status: current
 
 # Release notes
 
+## 3.1.1
+
+- Accept Ruby 3.3 and every newer release. Ruby 4.1 and later no longer stop
+  Jeeves at startup; the supported minimum is unchanged.
+
 ## 3.1.0
 
 - Increase the default local context to 65,536 tokens.
