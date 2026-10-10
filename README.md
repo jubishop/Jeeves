@@ -17,7 +17,7 @@ never going to make the missing endpoint appear.
 
 ## Install
 
-Use Ruby 3.3 through 4.0 and Git. Development uses the version in `.ruby-version`.
+Use Ruby 3.3 or newer and Git. Development uses the version in `.ruby-version`.
 
 ```sh
 gem install jeeves-git-commit
@@ -50,7 +50,7 @@ Plain `jeeves` then uses local generation; no per-command flag or cloud key is
 needed. See [configuration](docs/configuration.md) for installation, fish
 syntax, all settings, prompt customization, and input limits.
 
-Version 3 requires Ruby 3.3 through 4.0. It validates conventional commit
+Version 3 requires Ruby 3.3 or newer. It validates conventional commit
 subjects by default; use `GIT_COMMIT_MESSAGE_FORMAT=plain` for a custom format.
 Existing personal prompts are preserved. See the [release notes](docs/releases.md).
 

@@ -30,9 +30,12 @@ root: the application tests, RuboCop lint checks, and the gem build. See
 
 ## Runtime and toolchain versions
 
-Jeeves supports Ruby `>= 3.3, < 4.1`, declared in `jeeves.gemspec` and
-enforced by `lib/jeeves/runtime.rb`; development uses `.ruby-version`, and CI
-checks Ruby 3.3 and 4.0. See
+Jeeves supports Ruby 3.3 or newer, declared in `jeeves.gemspec` and enforced
+by `lib/jeeves/runtime.rb`. CI checks the 3.3 minimum and the latest stable
+Ruby on every run. `.ruby-version` names an exact release because rbenv reads
+only installed version names and has no latest-stable alias; set it to the
+newest stable Ruby when that changes, and switch to an alias if the local
+version manager gains one. See
 [application validation](#jeeves-application-validation) and the
 [version policy](foundation/engineering-policy.md#runtime-and-toolchain-versions).
 
@@ -46,11 +49,11 @@ comments, may be pushed without a version bump or gem release. Follow the
 
 ## Jeeves application validation
 
-Jeeves supports Ruby `>= 3.3, < 4.1`; development uses `.ruby-version`.
-The CLI and Rake tasks reject other versions before generation or build work.
+Jeeves supports Ruby 3.3 or newer; development uses `.ruby-version`.
+The CLI and Rake tasks reject older versions before generation or build work.
 Use `bundle install` after selecting a supported Ruby. CI checks Ruby 3.3 and
-4.0 on Ubuntu; the local development checkout also runs on macOS. Local checks
-do not establish a passing remote CI run.
+the latest stable Ruby on Ubuntu; the local development checkout also runs on
+macOS. Local checks do not establish a passing remote CI run.
 
 `bundle exec rake test` runs application tests; a focused invocation is
 `bundle exec ruby -Itest test/jeeves/workflow_test.rb`.

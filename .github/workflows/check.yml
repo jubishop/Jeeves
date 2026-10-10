@@ -16,8 +16,9 @@ jobs:
   check:
     strategy:
       matrix:
-        ruby: ['3.3', '4.0']
-    runs-on: ubuntu-24.04
+        # The gem's declared minimum and the latest stable Ruby.
+        ruby: ['3.3', ruby]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

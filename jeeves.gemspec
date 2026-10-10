@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.description   = "Jeeves is a command-line tool that helps you create AI-powered Git commit messages"
   spec.homepage      = "https://github.com/jubishop/Jeeves"
   spec.license       = "MIT"
-  spec.required_ruby_version = Gem::Requirement.new(">= 3.3", "< 4.1")
+  spec.required_ruby_version = Gem::Requirement.new(">= 3.3")
   
   spec.files         = Dir.glob("lib/{*,jeeves/*}.rb") + %w[bin/jeeves README.md LICENSE config/prompt]
   spec.bindir        = "bin"
