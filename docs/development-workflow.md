@@ -32,10 +32,9 @@ root: the application tests, RuboCop lint checks, and the gem build. See
 
 Jeeves supports Ruby 3.3 or newer, declared in `jeeves.gemspec` and enforced
 by `lib/jeeves/runtime.rb`. CI checks the 3.3 minimum and the latest stable
-Ruby on every run. `.ruby-version` names an exact release because rbenv reads
-only installed version names and has no latest-stable alias; set it to the
-newest stable Ruby when that changes, and switch to an alias if the local
-version manager gains one. See
+Ruby on every run. The repository has no `.ruby-version`: rbenv cannot name
+the latest stable release, and local development uses Homebrew's current
+Ruby. See
 [application validation](#jeeves-application-validation) and the
 [version policy](foundation/engineering-policy.md#runtime-and-toolchain-versions).
 
@@ -49,7 +48,7 @@ comments, may be pushed without a version bump or gem release. Follow the
 
 ## Jeeves application validation
 
-Jeeves supports Ruby 3.3 or newer; development uses `.ruby-version`.
+Jeeves supports Ruby 3.3 or newer; development uses Homebrew's current Ruby.
 The CLI and Rake tasks reject older versions before generation or build work.
 Use `bundle install` after selecting a supported Ruby. CI checks Ruby 3.3 and
 the latest stable Ruby on Ubuntu; the local development checkout also runs on

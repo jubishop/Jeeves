@@ -17,7 +17,7 @@ never going to make the missing endpoint appear.
 
 ## Install
 
-Use Ruby 3.3 or newer and Git. Development uses the version in `.ruby-version`.
+Use Ruby 3.3 or newer and Git. Development uses Homebrew's current Ruby.
 
 ```sh
 gem install jeeves-git-commit
