@@ -2,7 +2,7 @@
 
 Store durable guidance and non-derivable context here. Use
 [docs](../docs/README.md) for intentional designs and research. Use
-[td](../docs/task-tracking.md) for local tasks and progress, and GitHub Issues
+[td](../docs/foundation/task-tracking.md) for local tasks and progress, and GitHub Issues
 for shared work.
 
 Search before writing. Update a related page instead of duplicating it.
@@ -42,7 +42,7 @@ when related work depends on them. Do not invent a verification date.
 Keep each page focused on one topic. Review a long page before adding more;
 split independent topics into linked pages when that improves reading and
 maintenance. Preserve the rule, reason, and evidence together. Follow the
-[Markdown guidance](../docs/development-workflow.md#markdown-pages).
+[Markdown guidance](../docs/foundation/engineering-policy.md#markdown-pages).
 
 ## Index and archive
 

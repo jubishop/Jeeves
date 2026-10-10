@@ -113,13 +113,15 @@ bin/doctor
 ```
 
 `bin/check` runs fast foundation checks. `bin/check --documents-only` checks
-Markdown. `bin/check --full` adds the foundation tests and Ruby tests, lint,
+Markdown. `bin/check --full` adds `bin/check-application`: Ruby tests, lint,
 and gem build. Application checks are not part of the two routine modes.
 Built gems go in `gems/`. Publishing with `rake push` is an explicit release
 action; it is never part of normal validation.
 
-- [Development workflow](docs/development-workflow.md): setup, knowledge search,
-  worktrees, hooks, runtime policy, and validation.
+- [Development workflow](docs/development-workflow.md): setup, validation,
+  runtime policy, and releases.
+- [Project Starter foundation](docs/foundation/README.md): knowledge search,
+  worktrees, hooks, task tracking, and shared engineering policy.
 - [Documents](docs/README.md) and [memory](memory/README.md).
 - [GitHub Issues](https://github.com/jubishop/Jeeves/issues): bugs and planned work.
 - [Agent instructions](AGENTS.md).
@@ -134,6 +136,6 @@ its separate [license notice](LICENSE.project-starter).
 
 Use `td` for local tasks, progress, blockers, and session handoffs. After cloning,
 install td and run `td init` in the primary checkout. Use `td status` or
-`td monitor` to inspect progress. Follow the [task workflow](docs/task-tracking.md)
+`td monitor` to inspect progress. Follow the [task workflow](docs/foundation/task-tracking.md)
 for setup, review, worktrees, and local data. Keep GitHub Issues for shared scope
 and acceptance criteria, linked from related td tasks.
