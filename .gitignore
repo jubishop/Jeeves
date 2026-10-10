@@ -14,7 +14,6 @@ vendor/
 *~
 
 # Ignore OS generated files
-.DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
@@ -34,19 +33,9 @@ coverage/
 # Ignore log files
 *.log
 # Project knowledge and disposable worktrees
-.DS_Store
-.cache/
-.config/qmd/
-.env
-.env.*
-!.env.example
-.envrc.local
-__pycache__/
-*.py[cod]
-worktrees/
 
 # Local td task state
-.todos/
+
 # project-starter:begin
 .DS_Store
 .cache/
