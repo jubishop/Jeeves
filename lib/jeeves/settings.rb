@@ -12,7 +12,7 @@ module Jeeves
       @model = options[:model] || if @provider == 'ollama'
                                     env.fetch('GIT_COMMIT_LOCAL_MODEL', 'gemma4:26b')
                                   else
-                                    env.fetch('GIT_COMMIT_MODEL', 'x-ai/grok-code-fast-1')
+                                    env.fetch('GIT_COMMIT_MODEL', 'anthropic/claude-haiku-5.5')
                                   end
       raise Error, 'The configured model must not be empty' if @model.strip.empty?
 

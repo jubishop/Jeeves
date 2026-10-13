@@ -12,7 +12,7 @@ settings; Jeeves does not load `.env` files itself.
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `GIT_COMMIT_PROVIDER` | `openrouter` or `ollama` | `openrouter` |
-| `GIT_COMMIT_MODEL` | OpenRouter model | `x-ai/grok-code-fast-1` |
+| `GIT_COMMIT_MODEL` | OpenRouter model | `anthropic/claude-haiku-5.5` |
 | `GIT_COMMIT_LOCAL_MODEL` | Installed Ollama model tag | `gemma4:26b` |
 | `OPENROUTER_API_KEY` | Required for OpenRouter only | None |
 | `OLLAMA_HOST` | Ollama HTTP or HTTPS endpoint | `http://127.0.0.1:11434` |

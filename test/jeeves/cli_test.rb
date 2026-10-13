@@ -49,10 +49,24 @@ class CLITest < Minitest::Test
     end
   end
 
-  def test_defaults_use_openrouter_and_xai_without_stop_parameter
+  def test_defaults_use_openrouter_and_claude_haiku
     with_cli_environment do |env, directory|
       env.delete('GIT_COMMIT_PROVIDER')
       env.delete('GIT_COMMIT_MODEL')
+      request = cloud_request.with do |http|
+        body = JSON.parse(http.body)
+        body['model'] == 'anthropic/claude-haiku-5.5' && body['stop'] == ['END_COMMIT'] &&
+          body['messages'].map { |message| message['role'] } == ['user']
+      end
+      assert_equal 0, invoke(env, directory).first
+      assert_requested request
+    end
+  end
+
+  def test_xai_models_omit_stop_parameter
+    with_cli_environment do |env, directory|
+      env['GIT_COMMIT_PROVIDER'] = 'openrouter'
+      env['GIT_COMMIT_MODEL'] = 'x-ai/grok-code-fast-1'
       request = cloud_request.with do |http|
         body = JSON.parse(http.body)
         body['model'] == 'x-ai/grok-code-fast-1' && !body.key?('stop')
