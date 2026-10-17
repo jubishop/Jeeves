@@ -36,7 +36,7 @@ module Jeeves
       return show(VERSION) if options[:version]
 
       settings = Settings.new(@env, options)
-      provider = settings.provider == 'ollama' ? Providers::Ollama.new(settings) : Providers::OpenRouter.new(settings)
+      provider = Providers::CLIENTS.fetch(settings.provider).new(settings)
       piped = !@input.tty? && !@input.closed?
       if piped
         diff = (@input.read || +'').force_encoding(Encoding::UTF_8)
@@ -78,7 +78,7 @@ module Jeeves
         parser.on('-a', '--all', 'Include all working-tree changes') { options[:all] = true }
         parser.on('-p', '--push', 'Push after a successful commit') { options[:push] = true }
         parser.on('-d', '--dry-run', 'Print the message without staging or committing') { options[:dry_run] = true }
-        parser.on('--provider PROVIDER', %w[openrouter ollama], 'Use openrouter or ollama') { |value| options[:provider] = value }
+        parser.on('--provider PROVIDER', Settings::PROVIDERS, 'Use openrouter, anthropic, or ollama') { |value| options[:provider] = value }
         parser.on('--local', 'Use Ollama for this invocation') { options[:provider] = 'ollama' }
         parser.on('--model MODEL', 'Override the configured model') { |value| options[:model] = value }
         parser.on('--version', 'Show version') { options[:version] = true }

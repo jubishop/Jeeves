@@ -4,15 +4,17 @@ module Jeeves
   class Settings
     attr_reader :provider, :model, :context, :max_diff_bytes, :message_format, :env
 
+    PROVIDERS = %w[openrouter anthropic ollama].freeze
+
     def initialize(env, options = {})
       @env = env
       @provider = options[:provider] || env.fetch('GIT_COMMIT_PROVIDER', 'openrouter')
-      raise Error, 'GIT_COMMIT_PROVIDER must be openrouter or ollama' unless %w[openrouter ollama].include?(@provider)
+      raise Error, 'GIT_COMMIT_PROVIDER must be openrouter, anthropic, or ollama' unless PROVIDERS.include?(@provider)
 
-      @model = options[:model] || if @provider == 'ollama'
-                                    env.fetch('GIT_COMMIT_LOCAL_MODEL', 'gemma4:26b')
-                                  else
-                                    env.fetch('GIT_COMMIT_MODEL', 'anthropic/claude-haiku-5.5')
+      @model = options[:model] || case @provider
+                                  when 'ollama' then env.fetch('GIT_COMMIT_LOCAL_MODEL', 'gemma4:26b')
+                                  when 'anthropic' then env.fetch('GIT_COMMIT_ANTHROPIC_MODEL', 'claude-haiku-5-5')
+                                  else env.fetch('GIT_COMMIT_OPENROUTER_MODEL', 'anthropic/claude-haiku-5.5')
                                   end
       raise Error, 'The configured model must not be empty' if @model.strip.empty?
 

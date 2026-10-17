@@ -4,25 +4,27 @@ status: current
 
 # Configuration
 
-Jeeves supports OpenRouter and local Ollama models. Your shell supplies the
+Jeeves supports OpenRouter, the Anthropic API, and local Ollama models. Your shell supplies the
 settings; Jeeves does not load `.env` files itself.
 
 ## Provider and model
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `GIT_COMMIT_PROVIDER` | `openrouter` or `ollama` | `openrouter` |
-| `GIT_COMMIT_MODEL` | OpenRouter model | `anthropic/claude-haiku-5.5` |
+| `GIT_COMMIT_PROVIDER` | `openrouter`, `anthropic`, or `ollama` | `openrouter` |
+| `GIT_COMMIT_OPENROUTER_MODEL` | OpenRouter model | `anthropic/claude-haiku-5.5` |
+| `GIT_COMMIT_ANTHROPIC_MODEL` | Anthropic API model | `claude-haiku-5-5` |
 | `GIT_COMMIT_LOCAL_MODEL` | Installed Ollama model tag | `gemma4:26b` |
 | `OPENROUTER_API_KEY` | Required for OpenRouter only | None |
+| `ANTHROPIC_API_KEY` | Required for Anthropic only | None |
 | `OLLAMA_HOST` | Ollama HTTP or HTTPS endpoint | `http://127.0.0.1:11434` |
 | `GIT_COMMIT_LOCAL_CONTEXT` | Local context window in tokens | `65536` |
 | `GIT_COMMIT_MAX_DIFF_BYTES` | Maximum diff bytes sent to the model, including omission notices | `65536` |
 | `GIT_COMMIT_MESSAGE_FORMAT` | `conventional` or `plain` | `conventional` |
 
 `--provider` and `--model` override saved settings for one command. `--local`
-is shorthand for `--provider ollama`. Cloud and local model settings remain
-separate, so switching providers does not erase either model choice.
+is shorthand for `--provider ollama`. Each provider has its own model setting,
+so switching providers does not erase another provider's model choice.
 
 For fish, save your choice in shell configuration or an environment file
 that your shell loads. For example:
@@ -65,7 +67,16 @@ Ollama listens on localhost by default. For local-only operation, set
 `{"disable_ollama_cloud": true}` in `~/.ollama/server.json` and restart Ollama.
 See the [Ollama FAQ](https://docs.ollama.com/faq). Jeeves sends no cloud API key
 to Ollama, bypasses environment HTTP proxies for local requests, and never
-falls back to OpenRouter after an Ollama failure.
+falls back to a cloud provider after an Ollama failure.
+
+## Anthropic setup
+
+The Anthropic provider calls the Messages API at `api.anthropic.com` with
+`ANTHROPIC_API_KEY`. Use a model ID from the Anthropic API, such as
+`claude-haiku-5-5`, not an OpenRouter ID such as `anthropic/claude-haiku-5.5`.
+Jeeves leaves thinking at the model's default because newer models reject
+requests to disable it; the output limit of 16,000 tokens covers thinking and
+the message. A refusal or output-limit stop returns an error.
 
 ## Prompts and tone
 
@@ -139,6 +150,7 @@ files, and Git's checks for concurrent changes are preserved.
 
 Local generation requests thinking off. Models that ignore this request and
 return reasoning are rejected. Network connection timeout is five seconds;
-response timeouts are 60 seconds for OpenRouter and 300 seconds for Ollama.
+response timeouts are 60 seconds for OpenRouter and Anthropic and 300 seconds
+for Ollama.
 These are failure bounds, not performance promises. Loading a model and large
 inputs can take longer than an ordinary warm request.

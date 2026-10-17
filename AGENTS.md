@@ -41,7 +41,7 @@ take precedence over this block and the foundation pages wherever they differ.
 ## Jeeves
 
 Jeeves is a Ruby CLI for conventional commit messages with gitmoji. It uses
-OpenRouter or local Ollama models. The bundled prompt is sarcastic; users can
+OpenRouter, the Anthropic API, or local Ollama models. The bundled prompt is sarcastic; users can
 customize their own global or repository prompt.
 
 - Read [the architecture](docs/architecture.md) before changing generation or Git behavior.

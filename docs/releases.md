@@ -4,6 +4,21 @@ status: current
 
 # Release notes
 
+## 4.0.0
+
+- Add an `anthropic` provider that calls the Anthropic Messages API directly.
+  Select it with `GIT_COMMIT_PROVIDER=anthropic` or `--provider anthropic`; it
+  reads `ANTHROPIC_API_KEY` and `GIT_COMMIT_ANTHROPIC_MODEL`, which defaults to
+  `claude-haiku-5-5`.
+- OpenRouter now defaults to `anthropic/claude-haiku-5.5` instead of
+  `x-ai/grok-code-fast-1`.
+
+### Upgrade requirements
+
+- `GIT_COMMIT_MODEL` is renamed to `GIT_COMMIT_OPENROUTER_MODEL`, matching
+  each provider's own model setting. Jeeves no longer reads the old name, so
+  rename it in your shell configuration or OpenRouter uses its default model.
+
 ## 3.1.1
 
 - Accept Ruby 3.3 and every newer release. Ruby 4.1 and later no longer stop

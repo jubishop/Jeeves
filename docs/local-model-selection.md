@@ -63,8 +63,9 @@ output. The final sarcastic provider test took 4.20 seconds.
 
 ## Saved settings
 
-Jubi's fish startup loads `~/.env`, which selects `ollama` and
-`gemma4:26b-nvfp4`. The existing OpenRouter model setting is retained for
-`jeeves --provider openrouter`. For another machine, choose an appropriate
-installed tag; the NVFP4 and MLX packages tested here are machine-specific.
+Jubi's fish startup loads `~/.env`. Since October 17, 2026, it selects the
+`anthropic` provider with `claude-haiku-5-5`, and `jeeves --local` uses
+`qwen3.8:27b-mlx`, the local model that `~/.env` also keeps for other tools.
+For another machine, choose an appropriate installed tag; the NVFP4 and MLX
+packages tested here are machine-specific.
 See [configuration](configuration.md) for all settings and prompt precedence.

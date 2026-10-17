@@ -65,6 +65,30 @@ module Jeeves
       end
     end
 
+    class Anthropic
+      def initialize(settings)
+        @settings = settings
+        @key = settings.env['ANTHROPIC_API_KEY']
+        raise Error, 'ANTHROPIC_API_KEY environment variable not set' if @key.nil? || @key.empty?
+      end
+
+      def generate(prompt)
+        # Leave thinking at the model's default: newer models reject disabling it.
+        # The limit covers thinking as well as the message.
+        body = { model: @settings.model, max_tokens: 16_000, messages: [{ role: 'user', content: prompt }] }
+        headers = { 'x-api-key' => @key, 'anthropic-version' => '2023-06-01' }
+        result = HTTP.post(URI('https://api.anthropic.com/v1/messages'), body, headers)
+        raise Error, 'Anthropic reached its output limit; no commit message was accepted' if result['stop_reason'] == 'max_tokens'
+        raise Error, 'Anthropic declined to write this commit message' if result['stop_reason'] == 'refusal'
+
+        result.fetch('content').select { |block| block.fetch('type') == 'text' }.map { |block| block.fetch('text') }.join
+      rescue KeyError, NoMethodError, TypeError
+        raise Error, 'Unexpected Anthropic response structure'
+      rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, SystemCallError => e
+        raise Error, "Anthropic request failed: #{e.message}"
+      end
+    end
+
     class Ollama
       def initialize(settings)
         @settings = settings
@@ -100,5 +124,7 @@ module Jeeves
         raise Error, 'Ollama timed out. Check the server or try a smaller model or diff.'
       end
     end
+
+    CLIENTS = { 'openrouter' => OpenRouter, 'anthropic' => Anthropic, 'ollama' => Ollama }.freeze
   end
 end

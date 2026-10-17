@@ -18,7 +18,7 @@ and provider HTTP clients have separate responsibilities.
 | `lib/jeeves/git_repository.rb` | Run Git, preview changes, commit, and push |
 | `lib/jeeves/prompt.rb` | Select prompts, budget diff space, report shortening, and render input |
 | `lib/jeeves/message.rb` | Validate output and normalize gitmoji |
-| `lib/jeeves/providers.rb` | OpenRouter and Ollama HTTP requests |
+| `lib/jeeves/providers.rb` | OpenRouter, Anthropic, and Ollama HTTP requests |
 | `lib/jeeves/runtime.rb` | Enforce supported Ruby versions |
 
 The provider clients use Ruby's HTTP and TLS libraries. There is no agent

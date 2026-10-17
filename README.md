@@ -4,8 +4,8 @@
   <img src="assets/jeeves.png" alt="Jeeves Logo" width="200">
 </p>
 
-Jeeves creates Git commit messages from your changes using OpenRouter or a
-local Ollama model. The bundled prompt adds gitmoji and a sarcastic roast of
+Jeeves creates Git commit messages from your changes using OpenRouter, the
+Anthropic API, or a local Ollama model. The bundled prompt adds gitmoji and a sarcastic roast of
 your engineering choices. Your own prompt can be neutral.
 
 ```text
@@ -35,8 +35,18 @@ The checkout must remain available when using this installation method.
 
 ## Configure
 
-For OpenRouter, export `OPENROUTER_API_KEY`. Optionally set `GIT_COMMIT_MODEL`
-to your preferred model. The provider defaults to OpenRouter.
+For OpenRouter, export `OPENROUTER_API_KEY`. Optionally set
+`GIT_COMMIT_OPENROUTER_MODEL` to your preferred model. The provider defaults to
+OpenRouter.
+
+To call Anthropic directly, save these settings. `GIT_COMMIT_ANTHROPIC_MODEL`
+is optional and defaults to `claude-haiku-5-5`:
+
+```dotenv
+GIT_COMMIT_PROVIDER=anthropic
+ANTHROPIC_API_KEY=your-anthropic-key
+GIT_COMMIT_ANTHROPIC_MODEL=claude-haiku-5-5
+```
 
 To use an installed local Ollama model, save these in your shell's configuration
 or the environment file your shell already loads:
@@ -50,9 +60,10 @@ Plain `jeeves` then uses local generation; no per-command flag or cloud key is
 needed. See [configuration](docs/configuration.md) for installation, fish
 syntax, all settings, prompt customization, and input limits.
 
-Version 3 requires Ruby 3.3 or newer. It validates conventional commit
-subjects by default; use `GIT_COMMIT_MESSAGE_FORMAT=plain` for a custom format.
-Existing personal prompts are preserved. See the [release notes](docs/releases.md).
+Version 4 renames `GIT_COMMIT_MODEL` to `GIT_COMMIT_OPENROUTER_MODEL`. Jeeves
+requires Ruby 3.3 or newer and validates conventional commit subjects by
+default; use `GIT_COMMIT_MESSAGE_FORMAT=plain` for a custom format. Existing
+personal prompts are preserved. See the [release notes](docs/releases.md).
 
 ## Use
 
@@ -73,8 +84,9 @@ git diff | jeeves
 # Push only after a successful commit
 jeeves --push
 
-# Use the saved cloud model for one command
+# Use a saved provider and its model for one command
 jeeves --provider openrouter
+jeeves --provider anthropic
 
 # Override the local model for one command
 jeeves --local --model another-installed-model
@@ -85,7 +97,7 @@ jeeves --local --model another-installed-model
 | `-a`, `--all` | Include all working-tree changes |
 | `-d`, `--dry-run` | Print the message without changing the real index or HEAD |
 | `-p`, `--push` | Push after a successful commit |
-| `--provider openrouter\|ollama` | Override the provider |
+| `--provider openrouter\|anthropic\|ollama` | Override the provider |
 | `--local` | Use Ollama for this invocation |
 | `--model MODEL` | Override the selected provider's model |
 | `--version` | Print the version |

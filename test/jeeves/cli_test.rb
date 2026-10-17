@@ -5,6 +5,7 @@ require_relative '../test_helper'
 class CLITest < Minitest::Test
   LOCAL = 'http://127.0.0.1:11434/api/chat'
   CLOUD = 'https://openrouter.ai/api/v1/chat/completions'
+  ANTHROPIC = 'https://api.anthropic.com/v1/messages'
 
   def test_local_settings_and_literal_prompt_reach_server_without_cloud_credentials
     with_cli_environment do |env, directory|
@@ -52,7 +53,7 @@ class CLITest < Minitest::Test
   def test_defaults_use_openrouter_and_claude_haiku
     with_cli_environment do |env, directory|
       env.delete('GIT_COMMIT_PROVIDER')
-      env.delete('GIT_COMMIT_MODEL')
+      env.delete('GIT_COMMIT_OPENROUTER_MODEL')
       request = cloud_request.with do |http|
         body = JSON.parse(http.body)
         body['model'] == 'anthropic/claude-haiku-5.5' && body['stop'] == ['END_COMMIT'] &&
@@ -66,7 +67,7 @@ class CLITest < Minitest::Test
   def test_xai_models_omit_stop_parameter
     with_cli_environment do |env, directory|
       env['GIT_COMMIT_PROVIDER'] = 'openrouter'
-      env['GIT_COMMIT_MODEL'] = 'x-ai/grok-code-fast-1'
+      env['GIT_COMMIT_OPENROUTER_MODEL'] = 'x-ai/grok-code-fast-1'
       request = cloud_request.with do |http|
         body = JSON.parse(http.body)
         body['model'] == 'x-ai/grok-code-fast-1' && !body.key?('stop')
@@ -79,13 +80,93 @@ class CLITest < Minitest::Test
   def test_reasoning_cloud_models_receive_system_instruction
     with_cli_environment do |env, directory|
       env['GIT_COMMIT_PROVIDER'] = 'openrouter'
-      env['GIT_COMMIT_MODEL'] = 'openai/gpt-5-mini'
+      env['GIT_COMMIT_OPENROUTER_MODEL'] = 'openai/gpt-5-mini'
       request = cloud_request.with do |http|
         body = JSON.parse(http.body)
         body['messages'].first['role'] == 'system' && body['stop'] == ['END_COMMIT']
       end
       assert_equal 0, invoke(env, directory).first
       assert_requested request
+    end
+  end
+
+  def test_anthropic_settings_reach_messages_api_with_its_own_key_and_model
+    with_cli_environment do |env, directory|
+      env['GIT_COMMIT_PROVIDER'] = 'anthropic'
+      env['GIT_COMMIT_ANTHROPIC_MODEL'] = 'anthropic-model'
+      request = stub_request(:post, ANTHROPIC).with do |http|
+        body = JSON.parse(http.body)
+        assert_equal 'anthropic-key', http.headers['X-Api-Key']
+        assert_equal '2023-06-01', http.headers['Anthropic-Version']
+        assert_nil http.headers['Authorization']
+        assert_equal 'anthropic-model', body['model']
+        assert_equal [{ 'role' => 'user', 'content' => 'Describe test diff' }], body['messages']
+        assert_operator body['max_tokens'], :>, 1000
+        refute body.key?('thinking')
+        true
+      end.to_return(body: { content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: 'fix: anthropic message' }],
+                            stop_reason: 'end_turn' }.to_json)
+      assert_equal [0, "🐛 fix: anthropic message\n", ''], invoke(env, directory)
+      assert_requested request
+      assert_not_requested(:post, CLOUD)
+      assert_not_requested(:post, LOCAL)
+    end
+  end
+
+  def test_anthropic_flag_defaults_to_claude_haiku
+    with_cli_environment do |env, directory|
+      request = anthropic_request.with { |http| JSON.parse(http.body)['model'] == 'claude-haiku-5-5' }
+      assert_equal 0, invoke(env, directory, args: %w[--provider anthropic]).first
+      assert_requested request
+      assert_not_requested(:post, LOCAL)
+    end
+  end
+
+  def test_anthropic_requires_api_key_and_model
+    { 'ANTHROPIC_API_KEY' => nil, 'GIT_COMMIT_ANTHROPIC_MODEL' => ' ' }.each do |key, value|
+      with_cli_environment do |env, directory|
+        env['GIT_COMMIT_PROVIDER'] = 'anthropic'
+        env[key] = value
+        code, output, errors = invoke(env, directory)
+        assert_equal 1, code, key
+        assert_empty output
+        assert_includes errors, 'Error:'
+        assert_includes errors, 'ANTHROPIC_API_KEY' if key == 'ANTHROPIC_API_KEY'
+      end
+    end
+    assert_not_requested(:post, ANTHROPIC)
+  end
+
+  def test_anthropic_failed_refused_truncated_and_malformed_responses_are_rejected
+    responses = [
+      { status: 401, body: '{"type":"error","error":{"type":"authentication_error"}}' },
+      { body: 'null' }, { body: '{}' }, { body: '{"content":"fix: text"}' }, { body: '{"content":[]}' },
+      { body: '{"content":[{"type":"thinking","thinking":""}],"stop_reason":"end_turn"}' },
+      { body: '{"content":[{"type":"text","text":"fix: partial"}],"stop_reason":"max_tokens"}' },
+      { body: '{"content":[{"type":"text","text":"fix: refused"}],"stop_reason":"refusal"}' }
+    ]
+    responses.each do |response|
+      with_cli_environment do |env, directory|
+        env['GIT_COMMIT_PROVIDER'] = 'anthropic'
+        stub_request(:post, ANTHROPIC).to_return(**response)
+        code, output, errors = invoke(env, directory)
+        assert_equal 1, code, response.inspect
+        assert_empty output
+        assert_includes errors, 'Error:'
+      end
+    end
+  end
+
+  def test_anthropic_connection_errors_name_the_provider
+    [Net::ReadTimeout, Net::OpenTimeout, SocketError, Errno::ECONNREFUSED].each do |error|
+      with_cli_environment do |env, directory|
+        env['GIT_COMMIT_PROVIDER'] = 'anthropic'
+        stub_request(:post, ANTHROPIC).to_raise(error)
+        code, output, errors = invoke(env, directory)
+        assert_equal 1, code
+        assert_empty output
+        assert_includes errors, 'Anthropic request failed'
+      end
     end
   end
 
@@ -273,5 +354,9 @@ class CLITest < Minitest::Test
 
   def cloud_request
     stub_request(:post, CLOUD).to_return(body: { choices: [{ message: { content: 'fix: cloud message' } }] }.to_json)
+  end
+
+  def anthropic_request
+    stub_request(:post, ANTHROPIC).to_return(body: { content: [{ type: 'text', text: 'fix: anthropic message' }] }.to_json)
   end
 end
