@@ -120,7 +120,7 @@ For a custom prompt that intentionally produces another subject format, set
 `GIT_COMMIT_MESSAGE_FORMAT=plain`. Empty output, reasoning, and control
 characters are still rejected.
 
-Jeeves automatically shortens oversized diffs for either provider. It first
+Jeeves automatically shortens oversized diffs for every provider. It first
 removes unchanged context lines. If more reduction is needed, it shares space
 across files and hunks, keeping file metadata and hunk headers where they fit.
 Small changes can remain complete while large hunks keep excerpts from their
