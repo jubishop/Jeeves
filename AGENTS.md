@@ -13,9 +13,6 @@ take precedence over this block and the foundation pages wherever they differ.
   repair fails, pause knowledge-dependent work until the user approves a
   fallback; never silently substitute `rg` or direct reads. See
   [search failures](docs/foundation/knowledge-search.md#search-failures).
-- Use td for work with multiple stages, interruptions, blockers, or handoffs;
-  run `td usage --new-session -q` once per new context and keep handoffs
-  current. See [task tracking](docs/foundation/task-tracking.md).
 - Follow the [engineering policy](docs/foundation/engineering-policy.md):
   fewer dependencies, red-green tests for behavior changes, flaky tests fixed
   or filed as an issue right away, cohesive files and pages, checkout-isolated
@@ -53,7 +50,7 @@ customize their own global or repository prompt.
 - `bin/check --full` runs `bin/check-application`, which runs
   `bundle exec rake validate` after the foundation checks.
 - Do not publish a gem or push changes unless requested.
-- Nonfunctional changes, including docs, task tracking, and comments, may be
+- Nonfunctional changes, including docs and comments, may be
   committed and pushed without a version bump or gem release. Run the checks
   appropriate to the change; an explicit release request still applies.
 - Keep errors and progress on stderr; piped input and dry-run print only the message.

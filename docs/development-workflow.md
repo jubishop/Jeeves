@@ -16,8 +16,7 @@ bin/check --full
 ```
 
 Setup needs Git and Python 3.9 or later, and checks also need ShellCheck.
-QMD and direnv are optional; setup reports skipped features. Install td and
-run `td init` as described in [task tracking](foundation/task-tracking.md).
+QMD and direnv are optional; setup reports skipped features.
 Create `.envrc` only when the project needs environment settings, and review
 it before running `direnv allow`; search does not need it.
 
@@ -47,7 +46,7 @@ and rejected Ruby 4.1; version 3.1.1 removed it.
 
 Pushes do not deploy or release. Publishing the gem with
 `bundle exec rake push` is an explicit release action, never part of normal
-validation. Nonfunctional changes, including docs, task tracking, and
+validation. Nonfunctional changes, including docs and
 comments, may be pushed without a version bump or gem release. Follow the
 [deployment policy](foundation/engineering-policy.md#deployment-decisions).
 
