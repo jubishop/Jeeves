@@ -19,9 +19,9 @@ take precedence over this block and the foundation pages wherever they differ.
   validation, and the latest stable toolchains.
 - Deliver by [kind of change](docs/foundation/engineering-policy.md#kinds-of-change):
   commit text, such as Markdown and AI skill prose, directly on the default
-  branch without checks; commit development code, such as tests, CI, and
-  tooling, directly after its checks pass; and deliver production code through
-  a pull request after its checks.
+  branch once `bin/check --documents-only` passes; commit development code,
+  such as tests, CI, and tooling, directly after its checks pass; and deliver
+  production code through a pull request after its checks.
 - Run [checks](docs/foundation/engineering-policy.md#checks) by change: the
   relevant checks while editing, and `bin/check --full` before merging or
   releasing production code unless an enforced CI gate runs it. Reuse passing
