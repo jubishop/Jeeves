@@ -1,10 +1,10 @@
 {
-  "version": "3.8.1",
+  "version": "3.8.2",
   "source": "https://github.com/jubishop/project-starter",
-  "ref": "v3.8.1",
+  "ref": "v3.8.2",
   "managed": {
     "LICENSE.project-starter": "93d5102cea84447b5ce6254e9f4a917d232cc101af0fc8c4bd31171d0740e71b",
-    "bin/_checks.py": "129d566c40266698c15ba309f6ccc9c71ab11bd28a4c3ec8e4f1145d8262257e",
+    "bin/_checks.py": "a20ff7085570b12c176289adc35f7c5cf3312836a7fc3e6a6f83db82a2ad10db",
     "bin/_knowledge.py": "f258112eb454b47ff6dc9a400ec89bb7fa0f98ab12664d47273ffb181c49cef7",
     "bin/check": "1eb794b0695f4840553f89d5be40060c58a749e9b3a261ac6992b5617c3ab57f",
     "bin/doctor": "bafccb584f6e9fb9fe161d3021f9d3832dc1e51ccabb9bee5794b0222894b79f",
@@ -19,7 +19,7 @@
     "bin/qmd-index": "8e7de8dcc353a768878f52c9fa5b4b9bbfab6db00a0d229f55b7af3a6f008fc5",
     "bin/setup": "22a1ba1d1cf981957dad1fce20da692d276b864e5e1bf0aa9d70fcc336c6332b",
     "docs/foundation/README.md": "5233244709e2051873746d0bb898b2fcbe7b06b96612e27374f669ec419a9d04",
-    "docs/foundation/engineering-policy.md": "a12efb9e6035fc4a01d3124cd60983ebf6331bc412fa41d41680e7b1f024adf9",
+    "docs/foundation/engineering-policy.md": "74010ddd13ca67ed36c01dda8674c8f290c6a5e1119041c4c67e28fc24d92dc2",
     "docs/foundation/knowledge-search.md": "164d6c1d6ef1a5894ed006851b88a5c3c0b99bf1f5260611f0f3510e8cdefa5e"
   },
   "blocks": {
