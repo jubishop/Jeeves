@@ -42,11 +42,5 @@
     "exclude": [
       "memory/pr_reviews/**"
     ]
-  },
-  "memoryAudit": {
-    "schedule": {
-      "weekday": "Sunday",
-      "hour": 3
-    }
   }
 }
