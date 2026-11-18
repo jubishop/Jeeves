@@ -31,23 +31,24 @@ take precedence over this block and the foundation pages wherever they differ.
 
 ## Jeeves
 
-Jeeves is a Ruby CLI for conventional commit messages with gitmoji. It uses
-OpenRouter, the Anthropic API, or local Ollama models. The bundled prompt is sarcastic; users can
-customize their own global or repository prompt.
+Jeeves is a Ruby CLI that writes conventional commit messages with gitmoji
+through OpenRouter, the Anthropic API, or local Ollama models. Its bundled
+prompt is sarcastic; users can customize a global or repository prompt.
 
-- Read [the architecture](docs/architecture.md) before changing generation or Git behavior.
-- Read [configuration](docs/configuration.md) for provider, model, and prompt settings.
-- Use [GitHub Issues](https://github.com/jubishop/Jeeves/issues) for tracked work.
-- Run `bundle exec rake test` for Ruby changes, or a focused test file.
-- Run `bundle exec rake lint` for Ruby lint checks.
-- Run `bundle exec rake build` to build the gem into `gems/`.
-- `bin/check --full` runs `bin/check-application`, which runs
-  `bundle exec rake validate` after the foundation checks.
-- Do not publish a gem or push changes unless requested.
-- Nonfunctional changes, including docs and comments, may be
-  committed and pushed without a version bump or gem release. Run the checks
-  appropriate to the change; an explicit release request still applies.
-- Keep errors and progress on stderr; piped input and dry-run print only the message.
-- Git failures must stop the operation, and dry-run must not alter the real index.
-- Test actual Git workflows in temporary repositories and fake HTTP only at the network boundary.
-- Do not use arbitrary sleeps in tests. Use bounded synchronization when testing concurrent behavior.
+- Read [the architecture](docs/architecture.md) before changing generation or
+  Git behavior, and [configuration](docs/configuration.md) for provider,
+  model, and prompt settings.
+- Run `bundle exec rake test`, or one test file, and `bundle exec rake lint`
+  for Ruby changes; `bundle exec rake build` builds the gem into `gems/`.
+  `bin/check --full` runs all three through `bundle exec rake validate`.
+- Publish the gem or push functional changes only when asked. Nonfunctional
+  changes, such as docs and comments, may be pushed without a version bump or
+  gem release.
+- Keep errors and progress on stderr; piped input and dry-run print only the
+  message.
+- Git failures must stop the operation, and dry-run must not alter the real
+  index.
+- Test actual Git workflows in temporary repositories, and fake HTTP only at
+  the network boundary.
+- Never use arbitrary sleeps in tests; use bounded synchronization for
+  concurrent behavior.
