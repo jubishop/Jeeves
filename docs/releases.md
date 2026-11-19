@@ -4,6 +4,15 @@ status: current
 
 # Release notes
 
+## 4.1.0
+
+- When the Anthropic API refuses `ANTHROPIC_API_KEY`, such as for a 401 or 403
+  or a too-low credit balance, the `anthropic` provider writes the message
+  through the `claude` command line on your Claude subscription and says so on
+  stderr. When the command line fails too, Jeeves reports both failures and
+  tries no other provider. See
+  [the fallback](configuration.md#claude-command-line-fallback).
+
 ## 4.0.0
 
 - Add an `anthropic` provider that calls the Anthropic Messages API directly.

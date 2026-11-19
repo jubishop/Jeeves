@@ -16,7 +16,7 @@ settings; Jeeves does not load `.env` files itself.
 | `GIT_COMMIT_ANTHROPIC_MODEL` | Anthropic API model | `claude-haiku-5-5` |
 | `GIT_COMMIT_LOCAL_MODEL` | Installed Ollama model tag | `gemma4:26b` |
 | `OPENROUTER_API_KEY` | Required for OpenRouter only | None |
-| `ANTHROPIC_API_KEY` | Required for Anthropic only | None |
+| `ANTHROPIC_API_KEY` | Required for Anthropic only; see [the fallback](#claude-command-line-fallback) | None |
 | `OLLAMA_HOST` | Ollama HTTP or HTTPS endpoint | `http://127.0.0.1:11434` |
 | `GIT_COMMIT_LOCAL_CONTEXT` | Local context window in tokens | `65536` |
 | `GIT_COMMIT_MAX_DIFF_BYTES` | Maximum diff bytes sent to the model, including omission notices | `65536` |
@@ -77,6 +77,29 @@ The Anthropic provider calls the Messages API at `api.anthropic.com` with
 Jeeves leaves thinking at the model's default because newer models reject
 requests to disable it; the output limit of 16,000 tokens covers thinking and
 the message. A refusal or output-limit stop returns an error.
+
+### Claude command-line fallback
+
+Jeeves always tries `ANTHROPIC_API_KEY` first. When the API refuses the key,
+it writes the message through the `claude` command line on your Claude
+subscription instead, and says so on stderr in every mode. The API refuses the
+key when it answers 401 or 403, or with an error that reports a too-low credit
+balance or a reached usage or spend limit, whatever the status. Rate limits,
+overloads and other server errors, timeouts, and connection failures fail as
+before, and an unset key keeps its setup error.
+
+The fallback runs `claude -p` with the configured model's family alias,
+`haiku`, `sonnet`, `opus`, or `fable`, taken from its ID; an ID that names none
+is passed unchanged. It removes `ANTHROPIC_API_KEY` from the command's
+environment, so Claude Code signs in with the subscription rather than the
+refused key, and turns off tools, customizations, MCP servers, settings files,
+and session files. Its own system prompt replaces Claude Code's default, and
+the result goes through the same output checks as the API's. Install and sign
+in to Claude Code to use it.
+
+When `claude` is missing, exits nonzero, reports an error, or returns empty
+text, Jeeves exits nonzero with both failures on stderr. It never switches to
+another provider.
 
 ## Prompts and tone
 
@@ -151,6 +174,6 @@ files, and Git's checks for concurrent changes are preserved.
 Local generation requests thinking off. Models that ignore this request and
 return reasoning are rejected. Network connection timeout is five seconds;
 response timeouts are 60 seconds for OpenRouter and Anthropic and 300 seconds
-for Ollama.
+for Ollama. The `claude` command-line fallback is stopped after 120 seconds.
 These are failure bounds, not performance promises. Loading a model and large
 inputs can take longer than an ordinary warm request.
