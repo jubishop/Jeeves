@@ -106,11 +106,143 @@ class CLITest < Minitest::Test
         true
       end.to_return(body: { content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: 'fix: anthropic message' }],
                             stop_reason: 'end_turn' }.to_json)
+      log = fake_claude(directory)
       assert_equal [0, "🐛 fix: anthropic message\n", ''], invoke(env, directory)
       assert_requested request
       assert_not_requested(:post, CLOUD)
       assert_not_requested(:post, LOCAL)
+      refute File.exist?(log), 'An accepted key must not run the claude command line'
     end
+  end
+
+  def test_refused_anthropic_key_falls_back_to_claude_command_line_without_the_key
+    refusals = [
+      [401, '{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}'],
+      [403, '{"type":"error","error":{"type":"permission_error","message":"Not allowed"}}'],
+      [400, '{"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}'],
+      [400, '{"type":"error","error":{"type":"invalid_request_error","message":"You have reached your specified API usage limits."}}'],
+      [429, '{"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your spend limit."}}']
+    ]
+    refusals.each do |status, body|
+      with_cli_environment do |env, directory|
+        env['GIT_COMMIT_PROVIDER'] = 'anthropic'
+        stub_request(:post, ANTHROPIC).to_return(status: status, body: body)
+        log = fake_claude(directory, output: claude_result('fix: claude message'))
+        code, output, errors = invoke(env, directory)
+        assert_equal [0, "🐛 fix: claude message\n"], [code, output], errors
+        assert_includes errors, 'falling back to the claude command line'
+        assert_includes errors, JSON.parse(body).dig('error', 'message')
+        call = JSON.parse(File.read(log))
+        assert_equal 'Describe test diff', call['input']
+        refute call['key'], 'The claude command line must not receive ANTHROPIC_API_KEY'
+        args = call['args']
+        assert_equal %w[-p --model haiku], args.first(3)
+        %w[--safe-mode --strict-mcp-config --no-session-persistence].each { |flag| assert_includes args, flag }
+        assert_equal '', args[args.index('--tools') + 1]
+        assert_equal '', args[args.index('--setting-sources') + 1]
+        assert_equal 'json', args[args.index('--output-format') + 1]
+        refute_empty args[args.index('--system-prompt') + 1]
+        refute_includes args, '--bare'
+        refute_includes args, 'Describe test diff'
+      end
+    end
+    assert_not_requested(:post, CLOUD)
+    assert_not_requested(:post, LOCAL)
+  end
+
+  def test_claude_fallback_uses_the_configured_models_family_alias
+    { 'claude-opus-5-5' => 'opus', 'claude-sonnet-5-5' => 'sonnet', 'claude-fable-5-2' => 'fable',
+      'claude-haiku-5-5' => 'haiku', 'anthropic-model' => 'anthropic-model' }.each do |model, alias_name|
+      with_cli_environment do |env, directory|
+        env['GIT_COMMIT_PROVIDER'] = 'anthropic'
+        env['GIT_COMMIT_ANTHROPIC_MODEL'] = model
+        stub_request(:post, ANTHROPIC).to_return(status: 401, body: '{"error":{"message":"invalid x-api-key"}}')
+        log = fake_claude(directory, output: claude_result('fix: claude message'))
+        assert_equal 0, invoke(env, directory).first, model
+        args = JSON.parse(File.read(log))['args']
+        assert_equal alias_name, args[args.index('--model') + 1], model
+      end
+    end
+  end
+
+  def test_anthropic_errors_that_do_not_refuse_the_key_do_not_fall_back
+    responses = [
+      { status: 429, body: '{"type":"error","error":{"type":"rate_limit_error","message":"Number of requests has exceeded your rate limit"}}' },
+      { status: 500, body: '{"type":"error","error":{"type":"api_error","message":"Internal server error"}}' },
+      { status: 529, body: '{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}' },
+      { status: 400, body: '{"type":"error","error":{"type":"invalid_request_error","message":"model: not found"}}' }
+    ]
+    responses.each do |response|
+      with_cli_environment do |env, directory|
+        env['GIT_COMMIT_PROVIDER'] = 'anthropic'
+        stub_request(:post, ANTHROPIC).to_return(**response)
+        log = fake_claude(directory, output: claude_result('fix: claude message'))
+        code, output, errors = invoke(env, directory)
+        assert_equal 1, code, response.inspect
+        assert_empty output
+        assert_includes errors, "API Error (#{response[:status]})"
+        refute File.exist?(log), response.inspect
+      end
+    end
+  end
+
+  def test_refused_key_and_failing_claude_command_line_report_both_failures
+    failures = {
+      nil => 'not installed',
+      { output: '{"type":"result","is_error":true,"result":"Not logged in · Please run /login"}', status: 1 } =>
+        'Not logged in · Please run /login',
+      { output: '', error: 'claude: something broke', status: 2 } => 'claude: something broke',
+      { output: '{"type":"result","subtype":"error_during_execution","is_error":true}' } => 'error_during_execution',
+      { output: claude_result(' ') } => 'empty',
+      { output: 'not json' } => 'invalid JSON'
+    }
+    failures.each do |fake, reason|
+      with_cli_environment do |env, directory|
+        env['GIT_COMMIT_PROVIDER'] = 'anthropic'
+        stub_request(:post, ANTHROPIC).to_return(
+          status: 400, body: '{"type":"error","error":{"message":"Your credit balance is too low to access the Anthropic API."}}'
+        )
+        fake_claude(directory, **fake) if fake
+        code, output, errors = invoke(env, directory)
+        assert_equal 1, code, reason
+        assert_empty output
+        assert_includes errors, 'Your credit balance is too low'
+        assert_includes errors, 'claude command line also failed'
+        assert_includes errors, reason
+      end
+    end
+    assert_not_requested(:post, CLOUD)
+    assert_not_requested(:post, LOCAL)
+  end
+
+  def test_claude_command_line_output_gets_the_same_checks
+    with_cli_environment do |env, directory|
+      env['GIT_COMMIT_PROVIDER'] = 'anthropic'
+      stub_request(:post, ANTHROPIC).to_return(status: 401, body: '{"error":{"message":"invalid x-api-key"}}')
+      fake_claude(directory, output: claude_result('<think>hmm</think> fix: claude message'))
+      code, output, errors = invoke(env, directory)
+      assert_equal 1, code
+      assert_empty output
+      assert_includes errors, 'reasoning'
+    end
+  end
+
+  def test_claude_command_line_is_stopped_once_its_bound_passes
+    timeout = Jeeves::Providers::ClaudeCommand.timeout
+    Jeeves::Providers::ClaudeCommand.timeout = 1
+    with_cli_environment do |env, directory|
+      env['GIT_COMMIT_PROVIDER'] = 'anthropic'
+      stub_request(:post, ANTHROPIC).to_return(status: 401, body: '{"error":{"message":"invalid x-api-key"}}')
+      pid_file = File.join(directory, 'claude.pid')
+      fake_claude(directory, hang: pid_file)
+      code, output, errors = invoke(env, directory)
+      assert_equal 1, code
+      assert_empty output
+      assert_includes errors, 'did not finish within 1 seconds'
+      assert_raises(Errno::ESRCH) { Process.kill(0, Integer(File.read(pid_file))) }
+    end
+  ensure
+    Jeeves::Providers::ClaudeCommand.timeout = timeout
   end
 
   def test_anthropic_flag_defaults_to_claude_haiku
@@ -139,7 +271,6 @@ class CLITest < Minitest::Test
 
   def test_anthropic_failed_refused_truncated_and_malformed_responses_are_rejected
     responses = [
-      { status: 401, body: '{"type":"error","error":{"type":"authentication_error"}}' },
       { body: 'null' }, { body: '{}' }, { body: '{"content":"fix: text"}' }, { body: '{"content":[]}' },
       { body: '{"content":[{"type":"thinking","thinking":""}],"stop_reason":"end_turn"}' },
       { body: '{"content":[{"type":"text","text":"fix: partial"}],"stop_reason":"max_tokens"}' },
@@ -358,5 +489,26 @@ class CLITest < Minitest::Test
 
   def anthropic_request
     stub_request(:post, ANTHROPIC).to_return(body: { content: [{ type: 'text', text: 'fix: anthropic message' }] }.to_json)
+  end
+
+  # Puts a fake claude command line on the test PATH and returns the file where it records its call.
+  def fake_claude(directory, output: claude_result('fix: claude message'), error: '', status: 0, hang: nil)
+    path = File.join(directory, 'bin/claude')
+    log = File.join(directory, 'claude.json')
+    FileUtils.mkdir_p(File.dirname(path))
+    File.write(path, hang ? "#!/bin/sh\necho $$ > '#{hang}'\nexec /bin/sleep 600\n" : <<~RUBY)
+      #!#{RbConfig.ruby}
+      require 'json'
+      File.write(#{log.inspect}, JSON.generate(args: ARGV, input: $stdin.read, key: ENV.key?('ANTHROPIC_API_KEY')))
+      $stdout.print #{output.inspect}
+      $stderr.print #{error.inspect}
+      exit #{status}
+    RUBY
+    File.chmod(0o755, path)
+    log
+  end
+
+  def claude_result(text)
+    JSON.generate(type: 'result', subtype: 'success', is_error: false, result: text)
   end
 end

@@ -19,10 +19,17 @@ and provider HTTP clients have separate responsibilities.
 | `lib/jeeves/prompt.rb` | Select prompts, budget diff space, report shortening, and render input |
 | `lib/jeeves/message.rb` | Validate output and normalize gitmoji |
 | `lib/jeeves/providers.rb` | OpenRouter, Anthropic, and Ollama HTTP requests |
+| `lib/jeeves/claude_command.rb` | Run `claude -p` when the Anthropic API refuses the key |
 | `lib/jeeves/runtime.rb` | Enforce supported Ruby versions |
 
 The provider clients use Ruby's HTTP and TLS libraries. There is no agent
 framework or model SDK dependency. Model calls do not execute tools.
+
+When the Anthropic API refuses the key, the Anthropic provider runs the
+`claude` command line as a subprocess, with the prompt on stdin, tools off,
+and no `ANTHROPIC_API_KEY` in its environment. Jeeves stops its process group
+once its bound passes. See
+[the fallback](configuration.md#claude-command-line-fallback).
 
 Input is read in full and validated as UTF-8. Prompt preparation fits the diff
 to the byte limit and, for Ollama, the space left after instructions and output
@@ -55,10 +62,12 @@ cleanup, including when Git fails.
 ## Testing boundaries
 
 CLI tests use the public `CLI#run` interface and stub HTTP at the network
-boundary. Workflow tests launch the real executable in isolated repositories
-with a local HTTP fixture. They exercise failed staging, failed hooks, push
-failures, successful local pushes, prompt precedence, first-run installation,
-unborn repositories, index changes during generation, and paths with spaces.
+boundary. A fake `claude` executable, the only command on their `PATH`, stands
+in for the command line at the process boundary. Workflow tests launch the
+real executable in isolated repositories with a local HTTP fixture. They
+exercise failed staging, failed hooks, push failures, successful local pushes,
+prompt precedence, first-run installation, unborn repositories, index changes
+during generation, and paths with spaces.
 
 Tests do not call private methods or replace project logic. Test fixtures
 have isolated home directories, Git configuration, temporary paths, and ports.

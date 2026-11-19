@@ -16,7 +16,9 @@ class Minitest::Test
       env = {
         'HOME' => directory, 'GIT_COMMIT_PROVIDER' => 'ollama',
         'GIT_COMMIT_LOCAL_MODEL' => 'local-model', 'GIT_COMMIT_OPENROUTER_MODEL' => 'cloud-model',
-        'OPENROUTER_API_KEY' => 'test-key', 'ANTHROPIC_API_KEY' => 'anthropic-key'
+        'OPENROUTER_API_KEY' => 'test-key', 'ANTHROPIC_API_KEY' => 'anthropic-key',
+        # Only fakes placed here can run, never an installed claude command line.
+        'PATH' => File.join(directory, 'bin')
       }
       path = File.join(directory, '.config/jeeves/prompt')
       FileUtils.mkdir_p(File.dirname(path))

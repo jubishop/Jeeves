@@ -48,6 +48,9 @@ ANTHROPIC_API_KEY=your-anthropic-key
 GIT_COMMIT_ANTHROPIC_MODEL=claude-haiku-5-5
 ```
 
+When the API refuses the key, such as when its credit runs out, Jeeves falls
+back to the `claude` command line on your Claude subscription.
+
 To use an installed local Ollama model, save these in your shell's configuration
 or the environment file your shell already loads:
 

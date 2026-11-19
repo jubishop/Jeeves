@@ -7,6 +7,25 @@ require 'openssl'
 
 module Jeeves
   module Providers
+    # A provider's non-200 HTTP response.
+    class APIError < Error
+      attr_reader :status, :body
+
+      def initialize(status, body, hint = '')
+        @status = status
+        @body = body
+        super("API Error (#{status}): #{body}#{hint}")
+      end
+
+      # The provider's own error message, when the body carries one.
+      def detail
+        message = JSON.parse(body).dig('error', 'message')
+        message.is_a?(String) ? message : body
+      rescue JSON::ParserError, TypeError, NoMethodError
+        body
+      end
+    end
+
     class HTTP
       def self.post(uri, body, headers = {}, local: false)
         http = Net::HTTP.new(uri.host, uri.port, local ? nil : :ENV)
@@ -23,7 +42,7 @@ module Jeeves
         response = http.request(request)
         unless response.code == '200'
           hint = local && response.code == '404' ? " Download the model with: ollama pull #{body[:model]}" : ''
-          raise Error, "API Error (#{response.code}): #{response.body}#{hint}"
+          raise APIError.new(response.code, response.body, hint)
         end
         result = JSON.parse(response.body)
         raise Error, 'Unexpected API response structure' unless result.is_a?(Hash)
@@ -38,7 +57,7 @@ module Jeeves
     end
 
     class OpenRouter
-      def initialize(settings)
+      def initialize(settings, **)
         @settings = settings
         @key = settings.env['OPENROUTER_API_KEY']
         raise Error, 'OPENROUTER_API_KEY environment variable not set' if @key.nil? || @key.empty?
@@ -66,13 +85,35 @@ module Jeeves
     end
 
     class Anthropic
-      def initialize(settings)
+      # Errors that refuse the key itself rather than this one request.
+      REFUSED_KEY = /credit balance is too low|\b(?:usage|spend|spending) limits?\b/i
+
+      def initialize(settings, errors: $stderr)
         @settings = settings
+        @errors = errors
         @key = settings.env['ANTHROPIC_API_KEY']
         raise Error, 'ANTHROPIC_API_KEY environment variable not set' if @key.nil? || @key.empty?
       end
 
       def generate(prompt)
+        request(prompt)
+      rescue APIError => e
+        raise unless %w[401 403].include?(e.status) || e.body.to_s.match?(REFUSED_KEY)
+
+        fall_back(prompt, "#{e.status}: #{e.detail}")
+      end
+
+      private
+
+      def fall_back(prompt, refusal)
+        command = ClaudeCommand.new(@settings)
+        @errors.puts "Anthropic refused the API key (#{refusal}); falling back to the claude command line with model #{command.model}"
+        command.generate(prompt)
+      rescue Error => e
+        raise Error, "Anthropic refused the API key (#{refusal}), and the claude command line also failed: #{e.message}"
+      end
+
+      def request(prompt)
         # Leave thinking at the model's default: newer models reject disabling it.
         # The limit covers thinking as well as the message.
         body = { model: @settings.model, max_tokens: 16_000, messages: [{ role: 'user', content: prompt }] }
@@ -90,7 +131,7 @@ module Jeeves
     end
 
     class Ollama
-      def initialize(settings)
+      def initialize(settings, **)
         @settings = settings
         host = settings.env.fetch('OLLAMA_HOST', 'http://127.0.0.1:11434')
         host = "http://#{host}" unless host.include?('://')

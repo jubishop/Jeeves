@@ -14,6 +14,7 @@ require 'jeeves/diff'
 require 'jeeves/prompt'
 require 'jeeves/message'
 require 'jeeves/providers'
+require 'jeeves/claude_command'
 require 'jeeves/git_repository'
 
 module Jeeves
@@ -36,7 +37,7 @@ module Jeeves
       return show(VERSION) if options[:version]
 
       settings = Settings.new(@env, options)
-      provider = Providers::CLIENTS.fetch(settings.provider).new(settings)
+      provider = Providers::CLIENTS.fetch(settings.provider).new(settings, errors: @errors)
       piped = !@input.tty? && !@input.closed?
       if piped
         diff = (@input.read || +'').force_encoding(Encoding::UTF_8)
